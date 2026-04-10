@@ -67,7 +67,7 @@
                     <p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">Cartera Total</p>
                     <p id="totalPrestadoValue" class="text-blue-400 font-black text-lg leading-none">$0</p>
                 </div>
-                <button id="adminBtn" onclick="activarAdmin()" class="text-[10px] bg-slate-900 text-slate-400 px-5 py-2.5 rounded-xl border border-white/10 hover:border-blue-500/50 hover:text-white transition-all font-bold uppercase tracking-widest">
+                <button id="adminBtn" onclick="toggleAdmin()" class="text-[10px] bg-slate-900 text-slate-400 px-5 py-2.5 rounded-xl border border-white/10 hover:border-blue-500/50 hover:text-white transition-all font-bold uppercase tracking-widest">
                     🔓 Acceso Admin
                 </button>
             </div>
@@ -156,14 +156,22 @@
             return meses > 0 ? meses : 0;
         }
 
-        window.activarAdmin = () => {
-            if(prompt("Clave Admin:") === "3010") {
-                esAdmin = true;
-                document.getElementById('adminBtn').innerHTML = `<span class="text-green-500">●</span> ONLINE`;
-                document.getElementById('adminBtn').classList.add('border-green-500/30', 'bg-green-50/10');
-                document.getElementById('totalGlobalBox').classList.remove('hidden');
-                cargarDatos();
+        // FUNCIÓN TOGGLE: ACTIVA O DESACTIVA EL MODO ADMIN
+        window.toggleAdmin = () => {
+            if (!esAdmin) {
+                if(prompt("Clave Admin:") === "3010") {
+                    esAdmin = true;
+                    document.getElementById('adminBtn').innerHTML = `<span class="text-green-500">●</span> ONLINE (SALIR)`;
+                    document.getElementById('adminBtn').classList.add('border-green-500/30', 'bg-green-50/10');
+                    document.getElementById('totalGlobalBox').classList.remove('hidden');
+                }
+            } else {
+                esAdmin = false;
+                document.getElementById('adminBtn').innerHTML = `🔓 Acceso Admin`;
+                document.getElementById('adminBtn').classList.remove('border-green-500/30', 'bg-green-50/10');
+                document.getElementById('totalGlobalBox').classList.add('hidden');
             }
+            cargarDatos(); // Refrescar tabla para mostrar/ocultar botones
         };
 
         window.cerrarModal = () => {
@@ -184,6 +192,26 @@
                 btn.onclick = async () => { await accion(); cerrarModal(); };
             } else { btn.style.display = 'none'; }
         }
+
+        // ELIMINAR PRÉSTAMO COMPLETO
+        window.eliminarPrestamo = async (id, nombre) => {
+            if(confirm(`¿ESTÁS TOTALMENTE SEGURO? Esta acción eliminará el préstamo de ${nombre} y TODO su historial de pagos permanentemente.`)) {
+                try {
+                    // 1. Eliminar subcolecciones primero (Réditos y Capital)
+                    const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
+                    for (const d of reditosSnap.docs) await deleteDoc(doc(db, "prestamos", id, "historial_reditos", d.id));
+                    
+                    const capitalSnap = await getDocs(collection(db, "prestamos", id, "historial_capital"));
+                    for (const d of capitalSnap.docs) await deleteDoc(doc(db, "prestamos", id, "historial_capital", d.id));
+
+                    // 2. Eliminar documento principal
+                    await deleteDoc(doc(db, "prestamos", id));
+                    alert("Registro eliminado con éxito.");
+                } catch (e) {
+                    alert("Error al eliminar: " + e.message);
+                }
+            }
+        };
 
         window.formPago = (id, nombre, redito) => {
             abrirModal("Registrar Pago", nombre, `
@@ -222,48 +250,25 @@
             }
         };
 
-        // FUNCIÓN ACTUALIZADA CON SUMA DE RÉDITOS
         window.verHistorial = async (id, nombre) => {
             const snap = await getDocs(query(collection(db, "prestamos", id, "historial_reditos"), orderBy("timestamp", "desc")));
-            
             let totalSumaHistorial = 0;
             let registrosHtml = '';
-
             snap.forEach(d => {
                 const p = d.data();
                 const rid = d.id;
                 const monto = Number(p.monto) || 0;
                 totalSumaHistorial += monto;
-
                 const esIncompleto = monto < p.esperado;
                 registrosHtml += `
                 <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center transition-all hover:bg-white hover:shadow-md">
-                    <div>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-tighter">${fFecha(p.fecha)}</p>
-                        <p class="text-base font-black text-slate-800">$${monto.toLocaleString()}</p>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <span class="font-black text-[9px] px-3 py-1 rounded-full uppercase ${esIncompleto ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}">
-                            ${esIncompleto ? `Falta: $${(p.esperado - monto).toLocaleString()}` : 'Completo'}
-                        </span>
-                        <button onclick="borrarRegistroHistorial('${id}', '${rid}', '${nombre}')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors">
-                            🗑️
-                        </button>
-                    </div>
+                    <div><p class="text-[10px] text-slate-400 font-black uppercase tracking-tighter">${fFecha(p.fecha)}</p><p class="text-base font-black text-slate-800">$${monto.toLocaleString()}</p></div>
+                    <div class="flex items-center gap-4"><span class="font-black text-[9px] px-3 py-1 rounded-full uppercase ${esIncompleto ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}">${esIncompleto ? `Falta: $${(p.esperado - monto).toLocaleString()}` : 'Completo'}</span>
+                    <button onclick="borrarRegistroHistorial('${id}', '${rid}', '${nombre}')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors">🗑️</button></div>
                 </div>`;
             });
-
-            const resumenHtml = `
-                <div class="mb-6 p-5 bg-slate-950 rounded-2xl border border-white/5 shadow-xl">
-                    <p class="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-1">Total Cobrado de Réditos</p>
-                    <p class="text-2xl font-black text-white">$${totalSumaHistorial.toLocaleString()}</p>
-                </div>
-            `;
-
-            const cuerpoModal = snap.empty 
-                ? '<p class="text-center py-8 text-slate-400 font-medium italic">No hay pagos registrados aún</p>' 
-                : `<div class="space-y-3">${resumenHtml}${registrosHtml}</div>`;
-
+            const resumenHtml = `<div class="mb-6 p-5 bg-slate-950 rounded-2xl border border-white/5 shadow-xl"><p class="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-1">Total Cobrado de Réditos</p><p class="text-2xl font-black text-white">$${totalSumaHistorial.toLocaleString()}</p></div>`;
+            const cuerpoModal = snap.empty ? '<p class="text-center py-8 text-slate-400 font-medium italic">No hay pagos registrados aún</p>' : `<div class="space-y-3">${resumenHtml}${registrosHtml}</div>`;
             abrirModal("Historial de Réditos", nombre, cuerpoModal, null);
         };
 
@@ -277,53 +282,29 @@
                     const item = docu.data();
                     const id = docu.id;
                     totalSumaGlobal += item.capital;
-
                     const mesesDebidos = mesesTranscurridos(item.fechaInicio);
                     const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
-                    
-                    let pagosRegistradosCount = 0;
-                    let acumuladoDeFaltantes = 0;
-                    
-                    reditosSnap.forEach(r => {
-                        const p = r.data();
-                        pagosRegistradosCount++;
-                        acumuladoDeFaltantes += (p.faltante || 0); 
-                    });
-
+                    let pagosRegistradosCount = 0; let acumuladoDeFaltantes = 0;
+                    reditosSnap.forEach(r => { const p = r.data(); pagosRegistradosCount++; acumuladoDeFaltantes += (p.faltante || 0); });
                     const mesesSinNingunPago = (mesesDebidos > pagosRegistradosCount) ? (mesesDebidos - pagosRegistradosCount) : 0;
-                    const deudaPorMesesOmitidos = mesesSinNingunPago * item.redito;
-                    const deudaFinalAtrasada = deudaPorMesesOmitidos + acumuladoDeFaltantes;
+                    const deudaFinalAtrasada = (mesesSinNingunPago * item.redito) + acumuladoDeFaltantes;
 
                     const botones = esAdmin ? `
-                        <div class="flex gap-2 mt-3">
+                        <div class="flex flex-wrap gap-2 mt-3">
                             <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-blue-600 hover:bg-blue-700 text-[9px] text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-tighter transition-all">Pagar Rédito</button>
                             <button onclick="verHistorial('${id}', '${item.nombre}')" class="bg-slate-100 hover:bg-slate-200 text-[9px] text-slate-600 px-3 py-1.5 rounded-lg font-black uppercase tracking-tighter transition-all">Historial</button>
                             <button onclick="formAbono('${id}', '${item.nombre}', ${item.capital})" class="bg-green-600 hover:bg-green-700 text-[9px] text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-tighter transition-all">Abonar</button>
+                            <button onclick="eliminarPrestamo('${id}', '${item.nombre}')" class="bg-red-50 hover:bg-red-500 text-[9px] text-red-500 hover:text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-tighter transition-all border border-red-100">Eliminar Todo</button>
                         </div>` : '';
 
                     lista.innerHTML += `
                         <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="px-6 py-6">
-                                <span class="font-extrabold text-slate-900 uppercase tracking-tight text-sm">${item.nombre}</span>
-                                ${botones}
-                            </td>
-                            <td class="px-6 py-6 text-center">
-                                <button onclick="editarCaptura('${id}', '${item.nombre}', '${item.fechaInicio}')" class="text-xs text-slate-400 font-bold hover:text-blue-600 transition-all border-b border-dotted border-slate-300">
-                                    ${fFecha(item.fechaInicio)}
-                                </button>
-                            </td>
+                            <td class="px-6 py-6"><span class="font-extrabold text-slate-900 uppercase tracking-tight text-sm">${item.nombre}</span>${botones}</td>
+                            <td class="px-6 py-6 text-center"><button onclick="editarCaptura('${id}', '${item.nombre}', '${item.fechaInicio}')" class="text-xs text-slate-400 font-bold hover:text-blue-600 transition-all border-b border-dotted border-slate-300">${fFecha(item.fechaInicio)}</button></td>
                             <td class="px-6 py-6 text-right font-black text-slate-600 text-sm">$${item.capital.toLocaleString()}</td>
                             <td class="px-6 py-6 text-right text-blue-600 font-black text-sm">$${item.redito.toLocaleString()}</td>
-                            <td class="px-6 py-6 text-right">
-                                <p class="${deudaFinalAtrasada > 0 ? 'text-red-600' : 'text-slate-300'} font-black text-base">$${deudaFinalAtrasada.toLocaleString()}</p>
-                                ${acumuladoDeFaltantes > 0 ? `<p class="text-[8px] text-orange-500 font-black uppercase tracking-tighter">Deuda Faltantes: $${acumuladoDeFaltantes.toLocaleString()}</p>` : ''}
-                                ${mesesSinNingunPago > 0 ? `<p class="text-[8px] text-red-400 font-black uppercase tracking-tighter">${mesesSinNingunPago} Meses sin Pago</p>` : ''}
-                            </td>
-                            <td class="px-6 py-6 text-center">
-                                <button onclick="window.editarVencimiento('${id}', '${item.nombre}', '${item.vencimiento}')" class="px-3 py-1 bg-red-50 text-red-600 text-[10px] font-black rounded-lg hover:bg-red-600 hover:text-white transition-all">
-                                    ${fFecha(item.vencimiento)} ✏️
-                                </button>
-                            </td>
+                            <td class="px-6 py-6 text-right"><p class="${deudaFinalAtrasada > 0 ? 'text-red-600' : 'text-slate-300'} font-black text-base">$${deudaFinalAtrasada.toLocaleString()}</p></td>
+                            <td class="px-6 py-6 text-center"><button onclick="window.editarVencimiento('${id}', '${item.nombre}', '${item.vencimiento}')" class="px-3 py-1 bg-red-50 text-red-600 text-[10px] font-black rounded-lg hover:bg-red-600 hover:text-white transition-all">${fFecha(item.vencimiento)} ✏️</button></td>
                         </tr>`;
                 }
                 document.getElementById('totalPrestadoValue').innerText = `$${totalSumaGlobal.toLocaleString()}`;
@@ -331,14 +312,7 @@
         }
 
         window.formAbono = (id, nombre, actual) => {
-            abrirModal("Abono a Capital", nombre, `
-                <div class="text-center mb-6">
-                    <p class="text-[10px] font-black uppercase text-slate-400 mb-1">Saldo de Capital Actual</p>
-                    <p class="text-2xl font-black text-slate-800">$${actual.toLocaleString()}</p>
-                </div>
-                <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Monto a Descontar</label>
-                <input type="number" id="mAbono" placeholder="0.00" class="w-full p-4 border rounded-xl font-black text-lg outline-none focus:ring-4 focus:ring-green-500/10">
-            `, async () => {
+            abrirModal("Abono a Capital", nombre, `<div class="text-center mb-6"><p class="text-[10px] font-black uppercase text-slate-400 mb-1">Saldo de Capital Actual</p><p class="text-2xl font-black text-slate-800">$${actual.toLocaleString()}</p></div><label class="text-[10px] font-black uppercase text-slate-400 ml-1">Monto a Descontar</label><input type="number" id="mAbono" placeholder="0.00" class="w-full p-4 border rounded-xl font-black text-lg outline-none focus:ring-4 focus:ring-green-500/10">`, async () => {
                 const m = Number(document.getElementById('mAbono').value);
                 if(m > 0 && m <= actual) {
                     await addDoc(collection(db, "prestamos", id, "historial_capital"), { monto: m, fecha: new Date().toISOString().split('T')[0], timestamp: new Date() });
@@ -347,31 +321,13 @@
             });
         };
 
-        window.editarVencimiento = (id, nombre, actual) => {
-            abrirModal("Editar Vencimiento", nombre, `<input type="date" id="newDueDate" value="${actual}" class="w-full p-4 border rounded-xl outline-none font-bold">`, async () => {
-                await updateDoc(doc(db, "prestamos", id), { vencimiento: document.getElementById('newDueDate').value });
-            });
-        };
-
-        window.editarCaptura = (id, nombre, actual) => {
-            abrirModal("Editar Captura", nombre, `<input type="date" id="newCaptureDate" value="${actual}" class="w-full p-4 border rounded-xl outline-none font-bold">`, async () => {
-                await updateDoc(doc(db, "prestamos", id), { fechaInicio: document.getElementById('newCaptureDate').value });
-            });
-        };
+        window.editarVencimiento = (id, nombre, actual) => { abrirModal("Editar Vencimiento", nombre, `<input type="date" id="newDueDate" value="${actual}" class="w-full p-4 border rounded-xl outline-none font-bold">`, async () => { await updateDoc(doc(db, "prestamos", id), { vencimiento: document.getElementById('newDueDate').value }); }); };
+        window.editarCaptura = (id, nombre, actual) => { abrirModal("Editar Captura", nombre, `<input type="date" id="newCaptureDate" value="${actual}" class="w-full p-4 border rounded-xl outline-none font-bold">`, async () => { await updateDoc(doc(db, "prestamos", id), { fechaInicio: document.getElementById('newCaptureDate').value }); }); };
 
         document.getElementById('loanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const cap = Number(document.getElementById('amount').value);
-            const tasa = Number(document.getElementById('interest').value);
-            await addDoc(collection(db, "prestamos"), {
-                nombre: document.getElementById('debtor').value,
-                capital: cap,
-                tasa: tasa,
-                redito: cap * (tasa / 100),
-                fechaInicio: document.getElementById('startDate').value,
-                vencimiento: document.getElementById('dueDate').value,
-                timestamp: new Date()
-            });
+            const cap = Number(document.getElementById('amount').value); const tasa = Number(document.getElementById('interest').value);
+            await addDoc(collection(db, "prestamos"), { nombre: document.getElementById('debtor').value, capital: cap, tasa: tasa, redito: cap * (tasa / 100), fechaInicio: document.getElementById('startDate').value, vencimiento: document.getElementById('dueDate').value, timestamp: new Date() });
             e.target.reset();
         });
 
