@@ -7,121 +7,103 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #f8fafc;
-        }
-        .modal { 
-            display: none !important; 
-            position: fixed; 
-            z-index: 100; 
-            inset: 0; 
-            background: rgba(15, 23, 42, 0.6); 
-            backdrop-filter: blur(8px); 
-            transition: all 0.3s ease;
-        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #cbd5e1; }
+        .panel-cobalto { background-color: #1e293b; border: 1px solid #334155; border-radius: 1rem; }
+        input, select { transition: all 0.2s ease; background-color: #111827 !important; border: 1px solid #334155 !important; color: #f1f5f9 !important; }
+        input:focus, select:focus { border-color: #2dd4bf !important; box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.1) !important; outline: none; }
+        .modal { display: none !important; position: fixed; z-index: 100; inset: 0; background: rgba(2, 6, 17, 0.8); backdrop-filter: blur(4px); }
         .modal.flex { display: flex !important; }
-        input, select {
-            transition: all 0.2s ease;
-            border: 1px solid #e2e8f0 !important;
-        }
-        input:focus, select:focus {
-            border-color: #2563eb !important;
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
-        }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .modal-content { background-color: #111827; border: 1px solid #334155; }
+        table tbody tr:hover { background-color: #1e293b; }
     </style>
 </head>
-<body class="text-slate-800">
+<body class="text-slate-300">
 
     <div id="mainModal" class="modal items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all border border-white/20">
-            <div id="modalHeader" class="bg-slate-950 p-7 text-white flex justify-between items-center">
+        <div class="modal-content rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div id="modalHeader" class="bg-gray-950 p-6 text-white flex justify-between items-center border-b border-slate-700">
                 <div>
-                    <p class="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-1" id="modalUser">Usuario</p>
-                    <h3 class="text-xl font-extrabold tracking-tight" id="modalTitle">TÍTULO</h3>
+                    <p class="text-[10px] text-teal-400 font-bold uppercase tracking-widest mb-1" id="modalUser">Usuario</p>
+                    <h3 class="text-lg font-extrabold tracking-tight" id="modalTitle">TÍTULO</h3>
                 </div>
-                <button onclick="cerrarModal()" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-red-500/20 hover:text-red-400 transition-all text-2xl">&times;</button>
+                <button onclick="cerrarModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-white text-xl">&times;</button>
             </div>
-            <div class="p-8 max-h-[65vh] overflow-y-auto" id="modalBody"></div>
-            <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
-                <button onclick="cerrarModal()" class="px-5 py-2.5 text-slate-500 hover:text-slate-800 font-bold text-sm transition-colors">Cancelar</button>
-                <button id="btnGuardar" class="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-200 transition-all active:scale-95">Confirmar Cambios</button>
+            <div class="p-8 max-h-[60vh] overflow-y-auto text-slate-100" id="modalBody"></div>
+            <div class="p-6 bg-gray-950 border-t border-slate-700 flex justify-end gap-3">
+                <button onclick="cerrarModal()" class="px-5 py-2.5 text-slate-400 hover:text-white font-bold text-sm">Cancelar</button>
+                <button id="btnGuardar" class="px-8 py-2.5 bg-teal-600 hover:bg-teal-500 text-slate-950 rounded-xl font-extrabold text-sm shadow-md transition-all active:scale-95">Confirmar</button>
             </div>
         </div>
     </div>
 
-    <nav class="bg-slate-950 px-6 py-5 sticky top-0 z-40 border-b border-white/5 shadow-2xl shadow-slate-900/10">
+    <nav class="bg-gray-950 px-6 py-4 sticky top-0 z-40 border-b border-slate-700 shadow-xl">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <span class="text-white text-lg">🏦</span>
+                <div class="w-8 h-8 bg-teal-950 rounded-lg flex items-center justify-center border border-teal-700">
+                    <span class="text-teal-300">🏦</span>
                 </div>
-                <h1 class="text-lg font-extrabold text-white uppercase tracking-tighter">Presta<span class="text-blue-500">Control</span></h1>
+                <h1 class="text-lg font-black text-white uppercase tracking-tighter">Presta<span class="text-teal-400">Control</span></h1>
             </div>
             <div class="flex items-center gap-6">
                 <div id="totalGlobalBox" class="hidden flex flex-col items-end">
                     <p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">Cartera Total</p>
-                    <p id="totalPrestadoValue" class="text-blue-400 font-black text-lg leading-none">$0</p>
+                    <p id="totalPrestadoValue" class="text-teal-400 font-black text-lg leading-none">$0</p>
                 </div>
-                <button id="adminBtn" onclick="toggleAdmin()" class="text-[10px] bg-slate-900 text-slate-400 px-5 py-2.5 rounded-xl border border-white/10 hover:border-blue-500/50 hover:text-white transition-all font-bold uppercase tracking-widest">
-                    🔓 Acceso Admin
+                <button id="adminBtn" onclick="toggleAdmin()" class="text-[10px] bg-slate-800 text-slate-300 px-5 py-2.5 rounded-xl border border-slate-600 hover:border-teal-500 transition-all font-bold uppercase tracking-widest">
+                    🔒 Acceso Admin
                 </button>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 py-10">
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 mb-10 overflow-hidden">
-            <div class="px-8 py-4 border-b border-slate-50 bg-slate-50/50">
-                <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest">Nuevo Registro de Préstamo</h2>
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <div class="panel-cobalto mb-8 overflow-hidden">
+            <div class="px-8 py-4 border-b border-slate-700 bg-gray-950/50">
+                <h2 class="text-xs font-black text-teal-300 uppercase tracking-widest">Nuevo Registro</h2>
             </div>
             <form id="loanForm" class="p-8 grid grid-cols-1 md:grid-cols-12 gap-6">
                 <div class="md:col-span-4">
-                    <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Nombre del Deudor</label>
-                    <input type="text" id="debtor" placeholder="Ej. Juan Pérez" class="w-full p-3.5 rounded-xl text-sm font-medium outline-none bg-slate-50 focus:bg-white" required>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Deudor</label>
+                    <input type="text" id="debtor" class="w-full p-3.5 rounded-xl text-sm font-medium" required>
                 </div>
                 <div class="md:col-span-3">
-                    <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Monto e Interés</label>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Monto y %</label>
                     <div class="flex gap-2">
-                        <input type="number" id="amount" placeholder="0.00" class="w-full p-3.5 rounded-xl text-sm font-bold outline-none bg-slate-50 focus:bg-white" required>
-                        <select id="interest" class="p-3.5 rounded-xl bg-blue-50 border-none text-sm font-black text-blue-700 cursor-pointer hover:bg-blue-100">
+                        <input type="number" id="amount" class="w-full p-3.5 rounded-xl text-sm font-bold" required>
+                        <select id="interest" class="p-3.5 rounded-xl text-sm font-black">
                             <option value="5">5%</option><option value="10">10%</option>
                             <option value="15">15%</option><option value="20">20%</option>
                         </select>
                     </div>
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Fecha Inicio</label>
-                    <input type="date" id="startDate" class="w-full p-3.5 rounded-xl text-sm font-medium outline-none bg-slate-50" required>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Inicio</label>
+                    <input type="date" id="startDate" class="w-full p-3.5 rounded-xl text-sm font-medium" required>
                 </div>
                 <div class="md:col-span-3">
-                    <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Vencimiento</label>
-                    <input type="date" id="dueDate" class="w-full p-3.5 rounded-xl text-sm font-medium outline-none bg-slate-50" required>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Vencimiento</label>
+                    <input type="date" id="dueDate" class="w-full p-3.5 rounded-xl text-sm font-medium" required>
                 </div>
-                <button type="submit" class="md:col-span-12 bg-slate-950 hover:bg-blue-600 text-white font-black py-4 rounded-2xl transition-all uppercase text-[11px] tracking-[0.3em] shadow-xl shadow-slate-200 active:scale-[0.98]">
+                <button type="submit" class="md:col-span-12 bg-gray-950 hover:bg-teal-900 text-teal-300 border border-teal-800 font-black py-4 rounded-2xl transition-all uppercase text-[11px] tracking-[0.3em]">
                     Crear Nuevo Préstamo
                 </button>
             </form>
         </div>
 
-        <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+        <div class="panel-cobalto overflow-hidden shadow-2xl">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-100">
-                    <thead class="bg-slate-50">
+                <table class="min-w-full divide-y divide-slate-800">
+                    <thead class="text-white bg-gray-950">
                         <tr>
-                            <th class="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Deudor y Gestión</th>
+                            <th class="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Deudor</th>
                             <th class="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Captura</th>
                             <th class="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Capital</th>
                             <th class="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Rédito</th>
-                            <th class="px-6 py-5 text-right text-[10px] font-black text-red-400 uppercase tracking-widest">Total Atrasado</th>
+                            <th class="px-6 py-5 text-right text-[10px] font-black text-teal-400 uppercase tracking-widest">Total Atrasado</th>
                             <th class="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Vencimiento</th>
                         </tr>
                     </thead>
-                    <tbody id="loanList" class="divide-y divide-slate-50"></tbody>
+                    <tbody id="loanList" class="divide-y divide-slate-800 text-slate-100"></tbody>
                 </table>
             </div>
         </div>
@@ -156,178 +138,150 @@
             return meses > 0 ? meses : 0;
         }
 
-        // FUNCIÓN TOGGLE: ACTIVA O DESACTIVA EL MODO ADMIN
         window.toggleAdmin = () => {
             if (!esAdmin) {
                 if(prompt("Clave Admin:") === "3010") {
                     esAdmin = true;
-                    document.getElementById('adminBtn').innerHTML = `<span class="text-green-500">●</span> ONLINE (SALIR)`;
-                    document.getElementById('adminBtn').classList.add('border-green-500/30', 'bg-green-50/10');
+                    document.getElementById('adminBtn').innerHTML = `<span class="text-teal-400">●</span> SALIR ADMIN`;
+                    document.getElementById('adminBtn').classList.add('bg-teal-950/20', 'border-teal-500/30');
                     document.getElementById('totalGlobalBox').classList.remove('hidden');
+                    cargarDatos();
                 }
             } else {
                 esAdmin = false;
-                document.getElementById('adminBtn').innerHTML = `🔓 Acceso Admin`;
-                document.getElementById('adminBtn').classList.remove('border-green-500/30', 'bg-green-50/10');
+                document.getElementById('adminBtn').innerHTML = `🔒 Acceso Admin`;
+                document.getElementById('adminBtn').classList.remove('bg-teal-950/20', 'border-teal-500/30');
                 document.getElementById('totalGlobalBox').classList.add('hidden');
+                cargarDatos();
             }
-            cargarDatos(); // Refrescar tabla para mostrar/ocultar botones
         };
 
-        window.cerrarModal = () => {
-            const modal = document.getElementById('mainModal');
-            modal.classList.remove('flex');
-            modal.style.display = 'none';
-        };
+        window.cerrarModal = () => { document.getElementById('mainModal').classList.remove('flex'); };
 
         function abrirModal(titulo, deudor, html, accion) {
             document.getElementById('modalTitle').innerText = titulo;
             document.getElementById('modalUser').innerText = deudor;
             document.getElementById('modalBody').innerHTML = html;
-            const modal = document.getElementById('mainModal');
-            modal.classList.add('flex');
+            document.getElementById('mainModal').classList.add('flex');
             const btn = document.getElementById('btnGuardar');
-            if (accion) { 
-                btn.style.display = 'block'; 
-                btn.onclick = async () => { await accion(); cerrarModal(); };
+            if (accion) { btn.style.display = 'block'; btn.onclick = async () => { await accion(); cerrarModal(); };
             } else { btn.style.display = 'none'; }
         }
 
-        // ELIMINAR PRÉSTAMO COMPLETO
-        window.eliminarPrestamo = async (id, nombre) => {
-            if(confirm(`¿ESTÁS TOTALMENTE SEGURO? Esta acción eliminará el préstamo de ${nombre} y TODO su historial de pagos permanentemente.`)) {
-                try {
-                    // 1. Eliminar subcolecciones primero (Réditos y Capital)
-                    const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
-                    for (const d of reditosSnap.docs) await deleteDoc(doc(db, "prestamos", id, "historial_reditos", d.id));
-                    
-                    const capitalSnap = await getDocs(collection(db, "prestamos", id, "historial_capital"));
-                    for (const d of capitalSnap.docs) await deleteDoc(doc(db, "prestamos", id, "historial_capital", d.id));
-
-                    // 2. Eliminar documento principal
-                    await deleteDoc(doc(db, "prestamos", id));
-                    alert("Registro eliminado con éxito.");
-                } catch (e) {
-                    alert("Error al eliminar: " + e.message);
-                }
-            }
-        };
-
         window.formPago = (id, nombre, redito) => {
             abrirModal("Registrar Pago", nombre, `
-                <div class="mb-8 p-6 bg-blue-50 rounded-2xl text-center border border-blue-100">
-                    <p class="text-[10px] uppercase font-black text-blue-400 tracking-widest mb-1">Rédito Mensual Fijo</p>
-                    <p class="text-3xl font-black text-blue-700">$${redito.toLocaleString()}</p>
+                <div class="mb-4 p-4 bg-gray-900 rounded-xl text-center border border-slate-700">
+                    <p class="text-[10px] text-teal-400 font-bold uppercase tracking-widest">Rédito Mensual</p>
+                    <p class="text-2xl font-black text-white">$${redito.toLocaleString()}</p>
                 </div>
-                <div class="space-y-4">
-                    <div>
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Monto Recibido</label>
-                        <input type="number" id="mRedito" value="${redito}" class="w-full p-4 border rounded-xl font-bold text-green-600 bg-white outline-none text-lg">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Fecha de Operación</label>
-                        <input type="date" id="fRedito" value="${new Date().toISOString().split('T')[0]}" class="w-full p-4 border rounded-xl outline-none font-medium">
-                    </div>
-                </div>
+                <input type="number" id="mRedito" value="${redito}" class="w-full p-4 rounded-xl mb-4 font-bold text-teal-300">
+                <input type="date" id="fRedito" value="${new Date().toISOString().split('T')[0]}" class="w-full p-4 rounded-xl">
             `, async () => {
                 const montoRecibido = Number(document.getElementById('mRedito').value);
                 const fechaPago = document.getElementById('fRedito').value;
                 const faltante = redito - montoRecibido;
                 await addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
-                    monto: montoRecibido, 
-                    esperado: redito, 
-                    faltante: faltante > 0 ? faltante : 0, 
-                    fecha: fechaPago, 
-                    timestamp: new Date() 
+                    monto: montoRecibido, esperado: redito, faltante: faltante > 0 ? faltante : 0, fecha: fechaPago, timestamp: new Date() 
                 });
             });
         };
 
-        window.borrarRegistroHistorial = async (prestamoId, registroId, deudor) => {
-            if(confirm(`¿Seguro que deseas eliminar este registro de pago de ${deudor}?`)) {
-                await deleteDoc(doc(db, "prestamos", prestamoId, "historial_reditos", registroId));
-                cerrarModal();
-            }
-        };
-
         window.verHistorial = async (id, nombre) => {
             const snap = await getDocs(query(collection(db, "prestamos", id, "historial_reditos"), orderBy("timestamp", "desc")));
-            let totalSumaHistorial = 0;
-            let registrosHtml = '';
+            let total = 0; let html = '';
             snap.forEach(d => {
-                const p = d.data();
-                const rid = d.id;
-                const monto = Number(p.monto) || 0;
-                totalSumaHistorial += monto;
-                const esIncompleto = monto < p.esperado;
-                registrosHtml += `
-                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center transition-all hover:bg-white hover:shadow-md">
-                    <div><p class="text-[10px] text-slate-400 font-black uppercase tracking-tighter">${fFecha(p.fecha)}</p><p class="text-base font-black text-slate-800">$${monto.toLocaleString()}</p></div>
-                    <div class="flex items-center gap-4"><span class="font-black text-[9px] px-3 py-1 rounded-full uppercase ${esIncompleto ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}">${esIncompleto ? `Falta: $${(p.esperado - monto).toLocaleString()}` : 'Completo'}</span>
-                    <button onclick="borrarRegistroHistorial('${id}', '${rid}', '${nombre}')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors">🗑️</button></div>
+                const p = d.data(); total += Number(p.monto);
+                const falta = (p.esperado - p.monto);
+                html += `
+                <div class="p-4 bg-gray-950 rounded-xl border border-slate-700 flex justify-between items-center mb-2">
+                    <div><p class="text-[10px] text-slate-500 font-bold uppercase">${fFecha(p.fecha)}</p><p class="font-black text-white">$${p.monto.toLocaleString()}</p></div>
+                    <div class="flex items-center gap-4">
+                        ${falta > 0 ? `<span class="text-[9px] px-2 py-1 rounded bg-red-900/20 border border-red-800 text-red-400 font-bold">FALTÓ: $${falta.toLocaleString()}</span>` : ''}
+                        <button onclick="borrarRegistroHistorial('${id}', '${d.id}', '${nombre}')" class="text-slate-600 hover:text-red-400">🗑️</button>
+                    </div>
                 </div>`;
             });
-            const resumenHtml = `<div class="mb-6 p-5 bg-slate-950 rounded-2xl border border-white/5 shadow-xl"><p class="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-1">Total Cobrado de Réditos</p><p class="text-2xl font-black text-white">$${totalSumaHistorial.toLocaleString()}</p></div>`;
-            const cuerpoModal = snap.empty ? '<p class="text-center py-8 text-slate-400 font-medium italic">No hay pagos registrados aún</p>' : `<div class="space-y-3">${resumenHtml}${registrosHtml}</div>`;
-            abrirModal("Historial de Réditos", nombre, cuerpoModal, null);
+            abrirModal("Historial", nombre, `<div class="mb-4 p-4 bg-teal-950 rounded-xl border border-teal-800"><p class="text-[10px] text-teal-300 font-bold uppercase">Cobrado</p><p class="text-xl font-black text-white">$${total.toLocaleString()}</p></div>${html}`, null);
         };
+
+        window.borrarRegistroHistorial = async (pId, rId, deudor) => { if(confirm(`¿Borrar pago?`)) { await deleteDoc(doc(db, "prestamos", pId, "historial_reditos", rId)); cerrarModal(); } };
+
+        window.eliminarTodoRegistro = async (id, nombre) => { if(confirm(`¿ELIMINAR TODO el registro de ${nombre}?`)) { await deleteDoc(doc(db, "prestamos", id)); } };
 
         async function cargarDatos() {
             onSnapshot(query(collection(db, "prestamos"), orderBy("timestamp", "desc")), async (snap) => {
                 const lista = document.getElementById('loanList');
-                lista.innerHTML = "";
-                let totalSumaGlobal = 0;
+                lista.innerHTML = ""; let totalG = 0;
 
                 for (const docu of snap.docs) {
-                    const item = docu.data();
-                    const id = docu.id;
-                    totalSumaGlobal += item.capital;
+                    const item = docu.data(); const id = docu.id; totalG += item.capital;
                     const mesesDebidos = mesesTranscurridos(item.fechaInicio);
                     const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
-                    let pagosRegistradosCount = 0; let acumuladoDeFaltantes = 0;
-                    reditosSnap.forEach(r => { const p = r.data(); pagosRegistradosCount++; acumuladoDeFaltantes += (p.faltante || 0); });
-                    const mesesSinNingunPago = (mesesDebidos > pagosRegistradosCount) ? (mesesDebidos - pagosRegistradosCount) : 0;
-                    const deudaFinalAtrasada = (mesesSinNingunPago * item.redito) + acumuladoDeFaltantes;
+                    
+                    let pagosHechosCount = 0;
+                    let acumuladoFaltantes = 0;
+                    reditosSnap.forEach(r => {
+                        const p = r.data();
+                        pagosHechosCount++;
+                        acumuladoFaltantes += (Number(p.faltante) || 0);
+                    });
+
+                    const mesesSinPago = (mesesDebidos > pagosHechosCount) ? (mesesDebidos - pagosHechosCount) : 0;
+                    const deudaAtrasada = (mesesSinPago * item.redito) + acumuladoFaltantes;
 
                     const botones = esAdmin ? `
-                        <div class="flex flex-wrap gap-2 mt-3">
-                            <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-blue-600 hover:bg-blue-700 text-[9px] text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-tighter transition-all">Pagar Rédito</button>
-                            <button onclick="verHistorial('${id}', '${item.nombre}')" class="bg-slate-100 hover:bg-slate-200 text-[9px] text-slate-600 px-3 py-1.5 rounded-lg font-black uppercase tracking-tighter transition-all">Historial</button>
-                            <button onclick="formAbono('${id}', '${item.nombre}', ${item.capital})" class="bg-green-600 hover:bg-green-700 text-[9px] text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-tighter transition-all">Abonar</button>
-                            <button onclick="eliminarPrestamo('${id}', '${item.nombre}')" class="bg-red-50 hover:bg-red-500 text-[9px] text-red-500 hover:text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-tighter transition-all border border-red-100">Eliminar Todo</button>
+                        <div class="flex gap-2 mt-3 flex-wrap">
+                            <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-teal-600 hover:bg-teal-500 text-slate-950 px-2.5 py-1.5 rounded-lg text-[9px] font-extrabold uppercase">Pagar</button>
+                            <button onclick="verHistorial('${id}', '${item.nombre}')" class="bg-slate-700 text-white px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase">Historial</button>
+                            <button onclick="formAbono('${id}', '${item.nombre}', ${item.capital})" class="bg-slate-700 text-white px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase">Abonar</button>
+                            <button onclick="eliminarTodoRegistro('${id}', '${item.nombre}')" class="bg-red-950/30 text-red-400 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase border border-red-900/50">Borrar</button>
                         </div>` : '';
 
                     lista.innerHTML += `
-                        <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="px-6 py-6"><span class="font-extrabold text-slate-900 uppercase tracking-tight text-sm">${item.nombre}</span>${botones}</td>
-                            <td class="px-6 py-6 text-center"><button onclick="editarCaptura('${id}', '${item.nombre}', '${item.fechaInicio}')" class="text-xs text-slate-400 font-bold hover:text-blue-600 transition-all border-b border-dotted border-slate-300">${fFecha(item.fechaInicio)}</button></td>
-                            <td class="px-6 py-6 text-right font-black text-slate-600 text-sm">$${item.capital.toLocaleString()}</td>
-                            <td class="px-6 py-6 text-right text-blue-600 font-black text-sm">$${item.redito.toLocaleString()}</td>
-                            <td class="px-6 py-6 text-right"><p class="${deudaFinalAtrasada > 0 ? 'text-red-600' : 'text-slate-300'} font-black text-base">$${deudaFinalAtrasada.toLocaleString()}</p></td>
-                            <td class="px-6 py-6 text-center"><button onclick="window.editarVencimiento('${id}', '${item.nombre}', '${item.vencimiento}')" class="px-3 py-1 bg-red-50 text-red-600 text-[10px] font-black rounded-lg hover:bg-red-600 hover:text-white transition-all">${fFecha(item.vencimiento)} ✏️</button></td>
+                        <tr>
+                            <td class="px-6 py-6"><span class="font-extrabold text-white uppercase text-sm">${item.nombre}</span>${botones}</td>
+                            <td class="px-6 py-6 text-center"><button onclick="editarCaptura('${id}', '${item.nombre}', '${item.fechaInicio}')" class="text-xs text-slate-500 font-bold hover:text-teal-400">${fFecha(item.fechaInicio)}</button></td>
+                            <td class="px-6 py-6 text-right font-bold text-slate-100 text-sm">$${item.capital.toLocaleString()}</td>
+                            <td class="px-6 py-6 text-right text-slate-400 text-sm">$${item.redito.toLocaleString()}</td>
+                            <td class="px-6 py-6 text-right">
+                                <p class="${deudaAtrasada > 0 ? 'text-red-400' : 'text-slate-800'} font-black text-base">$${deudaAtrasada.toLocaleString()}</p>
+                                ${mesesSinPago > 0 ? `<p class="text-[8px] text-red-500 font-bold uppercase">${mesesSinPago} Meses sin Pago</p>` : ''}
+                                ${acumuladoFaltantes > 0 ? `<p class="text-[8px] text-orange-500 font-bold uppercase">Adeudo Incompletos: $${acumuladoFaltantes.toLocaleString()}</p>` : ''}
+                            </td>
+                            <td class="px-6 py-6 text-center"><button onclick="window.editarVencimiento('${id}', '${item.nombre}', '${item.vencimiento}')" class="px-2 py-1 bg-gray-950 text-slate-400 text-[10px] font-bold rounded border border-slate-700">${fFecha(item.vencimiento)} ✏️</button></td>
                         </tr>`;
                 }
-                document.getElementById('totalPrestadoValue').innerText = `$${totalSumaGlobal.toLocaleString()}`;
+                document.getElementById('totalPrestadoValue').innerText = `$${totalG.toLocaleString()}`;
             });
         }
 
         window.formAbono = (id, nombre, actual) => {
-            abrirModal("Abono a Capital", nombre, `<div class="text-center mb-6"><p class="text-[10px] font-black uppercase text-slate-400 mb-1">Saldo de Capital Actual</p><p class="text-2xl font-black text-slate-800">$${actual.toLocaleString()}</p></div><label class="text-[10px] font-black uppercase text-slate-400 ml-1">Monto a Descontar</label><input type="number" id="mAbono" placeholder="0.00" class="w-full p-4 border rounded-xl font-black text-lg outline-none focus:ring-4 focus:ring-green-500/10">`, async () => {
+            abrirModal("Abono Capital", nombre, `<input type="number" id="mAbono" class="w-full p-4 border rounded-xl font-bold bg-gray-900 text-teal-300" placeholder="Monto a descontar">`, async () => {
                 const m = Number(document.getElementById('mAbono').value);
-                if(m > 0 && m <= actual) {
-                    await addDoc(collection(db, "prestamos", id, "historial_capital"), { monto: m, fecha: new Date().toISOString().split('T')[0], timestamp: new Date() });
-                    await updateDoc(doc(db, "prestamos", id), { capital: actual - m });
-                }
+                if(m > 0 && m <= actual) { await updateDoc(doc(db, "prestamos", id), { capital: actual - m }); }
             });
         };
 
-        window.editarVencimiento = (id, nombre, actual) => { abrirModal("Editar Vencimiento", nombre, `<input type="date" id="newDueDate" value="${actual}" class="w-full p-4 border rounded-xl outline-none font-bold">`, async () => { await updateDoc(doc(db, "prestamos", id), { vencimiento: document.getElementById('newDueDate').value }); }); };
-        window.editarCaptura = (id, nombre, actual) => { abrirModal("Editar Captura", nombre, `<input type="date" id="newCaptureDate" value="${actual}" class="w-full p-4 border rounded-xl outline-none font-bold">`, async () => { await updateDoc(doc(db, "prestamos", id), { fechaInicio: document.getElementById('newCaptureDate').value }); }); };
+        window.editarVencimiento = (id, nombre, actual) => {
+            abrirModal("Vencimiento", nombre, `<input type="date" id="newDueDate" value="${actual}" class="w-full p-4 rounded-xl bg-gray-900 text-white">`, async () => {
+                await updateDoc(doc(db, "prestamos", id), { vencimiento: document.getElementById('newDueDate').value });
+            });
+        };
+
+        window.editarCaptura = (id, nombre, actual) => {
+            abrirModal("Fecha Captura", nombre, `<input type="date" id="newCaptureDate" value="${actual}" class="w-full p-4 rounded-xl bg-gray-900 text-white">`, async () => {
+                await updateDoc(doc(db, "prestamos", id), { fechaInicio: document.getElementById('newCaptureDate').value });
+            });
+        };
 
         document.getElementById('loanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const cap = Number(document.getElementById('amount').value); const tasa = Number(document.getElementById('interest').value);
-            await addDoc(collection(db, "prestamos"), { nombre: document.getElementById('debtor').value, capital: cap, tasa: tasa, redito: cap * (tasa / 100), fechaInicio: document.getElementById('startDate').value, vencimiento: document.getElementById('dueDate').value, timestamp: new Date() });
+            const cap = Number(document.getElementById('amount').value);
+            const tasa = Number(document.getElementById('interest').value);
+            await addDoc(collection(db, "prestamos"), {
+                nombre: document.getElementById('debtor').value, capital: cap, tasa: tasa, redito: cap * (tasa / 100),
+                fechaInicio: document.getElementById('startDate').value, vencimiento: document.getElementById('dueDate').value, timestamp: new Date()
+            });
             e.target.reset();
         });
 
