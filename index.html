@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -81,7 +80,7 @@
                     <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Vencimiento</label>
                     <input type="date" id="dueDate" class="w-full p-3.5 rounded-xl text-sm font-medium" required>
                 </div>
-                <button type="submit" class="md:col-span-12 bg-gray-950 hover:bg-teal-900 text-teal-300 border border-teal-800 font-black py-4 rounded-2xl transition-all uppercase text-[11px] tracking-[0.3em]">Crear Nuevo Préstamo</button>
+                <button type="submit" class="md:col-span-12 bg-gray-950 hover:bg-teal-900 text-teal-300 border border-teal-800 font-black py-4 rounded-2xl transition-all uppercase text-[11px] tracking-[0.3em]">Registrar Préstamo</button>
             </form>
         </div>
 
@@ -108,7 +107,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, orderBy, query, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-        // CONFIGURA TUS DATOS AQUÍ
         const firebaseConfig = {
             apiKey: "TU_API_KEY",
             authDomain: "prestamos-a35bb.firebaseapp.com",
@@ -162,75 +160,92 @@
             } else { btn.style.display = 'none'; }
         }
 
+        // LÓGICA DE PAGOS Y CONDONACIÓN
         window.formPago = (id, nombre, redito) => {
             abrirModal("Registrar Pago", nombre, `
                 <div class="mb-4 p-4 bg-gray-900 rounded-xl border border-slate-700">
-                    <p class="text-[10px] text-teal-400 font-bold uppercase tracking-widest">Rédito Sugerido</p>
+                    <p class="text-[10px] text-teal-400 font-bold uppercase tracking-widest">Rédito Mensual</p>
                     <p class="text-2xl font-black text-white">$${redito.toLocaleString()}</p>
                 </div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Monto Recibido</label>
                 <input type="number" id="mRedito" value="${redito}" class="w-full p-4 rounded-xl mb-4 font-bold text-teal-300">
-                <input type="text" id="notaPago" value="Pago de rédito mensual" class="w-full p-4 rounded-xl mb-4 text-sm">
+                <input type="text" id="notaPago" value="Pago de rédito" class="w-full p-4 rounded-xl mb-4 text-sm">
                 <input type="date" id="fRedito" value="${new Date().toISOString().split('T')[0]}" class="w-full p-4 rounded-xl">
             `, async () => {
                 await addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
-                    monto: Number(document.getElementById('mRedito').value), esperado: redito, nota: document.getElementById('notaPago').value, fecha: document.getElementById('fRedito').value, timestamp: new Date() 
+                    monto: Number(document.getElementById('mRedito').value), 
+                    valorContable: Number(document.getElementById('mRedito').value), // Lo que resta de la deuda
+                    esperado: redito, 
+                    nota: document.getElementById('notaPago').value, 
+                    fecha: document.getElementById('fRedito').value, 
+                    timestamp: new Date() 
                 });
             });
         };
 
         window.condonarRedito = (id, nombre, redito) => {
             abrirModal("Condonar Rédito", nombre, `
-                <div class="mb-4 p-6 bg-orange-950/20 rounded-xl border border-orange-900/50 text-center">
+                <div class="mb-4 p-6 bg-orange-950/20 rounded-xl border border-orange-900/50 text-center text-balance">
                     <p class="text-orange-400 font-bold text-sm mb-2">¿Perdonar rédito de este mes?</p>
-                    <p class="text-[10px] text-slate-500 uppercase">Se registrará como $0 (Al corriente)</p>
+                    <p class="text-[10px] text-slate-500 uppercase">Esto eliminará $${redito.toLocaleString()} de la deuda atrasada</p>
                 </div>
                 <input type="date" id="fCondonar" value="${new Date().toISOString().split('T')[0]}" class="w-full p-4 rounded-xl">
             `, async () => {
                 await addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
-                    monto: 0, esperado: redito, nota: "Rédito Condonado", fecha: document.getElementById('fCondonar').value, timestamp: new Date() 
+                    monto: 0, 
+                    valorContable: redito, // IMPORTANTE: Aquí decimos que aunque pagó $0, le restamos el total del mes a la deuda
+                    esperado: redito, 
+                    nota: "Rédito Condonado (Perdonado)", 
+                    fecha: document.getElementById('fCondonar').value, 
+                    timestamp: new Date() 
                 });
             });
         };
 
         window.verHistorial = async (id, nombre) => {
             const snap = await getDocs(query(collection(db, "prestamos", id, "historial_reditos"), orderBy("timestamp", "desc")));
-            let total = 0; let html = '';
+            let totalReal = 0; let html = '';
             snap.forEach(d => {
-                const p = d.data(); total += Number(p.monto);
+                const p = d.data(); totalReal += Number(p.monto);
                 html += `
                 <div class="p-4 bg-gray-950 rounded-xl border border-slate-700 flex justify-between items-center mb-2">
                     <div>
                         <p class="text-[10px] text-slate-500 font-bold uppercase">${fFecha(p.fecha)}</p>
                         <p class="font-black ${p.monto === 0 ? 'text-orange-400' : 'text-white'}">$${p.monto.toLocaleString()}</p>
-                        <p class="text-[9px] text-teal-600 italic">${p.nota || ''}</p>
+                        <p class="text-[9px] text-teal-600 italic font-medium">${p.nota || ''}</p>
                     </div>
                     <button onclick="borrarRegistroHistorial('${id}', '${d.id}')" class="text-slate-600 hover:text-red-400">🗑️</button>
                 </div>`;
             });
-            abrirModal("Historial", nombre, `<div class="mb-4 p-4 bg-teal-950 rounded-xl border border-teal-800"><p class="text-[10px] text-teal-300 font-bold uppercase">Total Cobrado</p><p class="text-xl font-black text-white">$${total.toLocaleString()}</p></div>${html}`, null);
+            abrirModal("Historial", nombre, `<div class="mb-4 p-4 bg-teal-950 rounded-xl border border-teal-800"><p class="text-[10px] text-teal-300 font-bold uppercase">Dinero Ingresado</p><p class="text-xl font-black text-white">$${totalReal.toLocaleString()}</p></div>${html}`, null);
         };
 
-        window.borrarRegistroHistorial = async (pId, rId) => { if(confirm(`¿Borrar este pago?`)) { await deleteDoc(doc(db, "prestamos", pId, "historial_reditos", rId)); cerrarModal(); } };
-
-        window.eliminarTodoRegistro = async (id, nombre) => { if(confirm(`¿ESTÁS SEGURO? Se borrará a ${nombre} y TODO su historial permanentemente.`)) { await deleteDoc(doc(db, "prestamos", id)); } };
+        window.borrarRegistroHistorial = async (pId, rId) => { if(confirm(`¿Borrar registro?`)) { await deleteDoc(doc(db, "prestamos", pId, "historial_reditos", rId)); cerrarModal(); } };
+        window.eliminarTodoRegistro = async (id, nombre) => { if(confirm(`¿Eliminar permanentemente a ${nombre}?`)) { await deleteDoc(doc(db, "prestamos", id)); } };
 
         async function cargarDatos() {
             onSnapshot(query(collection(db, "prestamos"), orderBy("timestamp", "desc")), async (snap) => {
                 const lista = document.getElementById('loanList');
                 lista.innerHTML = ""; let totalG = 0;
+                
                 for (const docu of snap.docs) {
                     const item = docu.data(); const id = docu.id; totalG += item.capital;
                     const mesesDebidos = mesesTranscurridos(item.fechaInicio);
                     const totalQueDebioPagar = mesesDebidos * item.redito;
+                    
                     const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
-                    let totalPagadoReal = 0;
-                    reditosSnap.forEach(r => { totalPagadoReal += Number(r.data().monto); });
-                    const saldoFinal = Math.max(0, totalQueDebioPagar - totalPagadoReal);
+                    let loQueYaNoDebe = 0;
+                    reditosSnap.forEach(r => { 
+                        const p = r.data();
+                        // Sumamos el valor contable (lo que pagó + lo que se le perdonó)
+                        loQueYaNoDebe += Number(p.valorContable || p.monto); 
+                    });
+                    
+                    const saldoFinal = Math.max(0, totalQueDebioPagar - loQueYaNoDebe);
 
                     const botones = esAdmin ? `
                         <div class="flex gap-2 mt-3 flex-wrap">
-                            <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-teal-600 hover:bg-teal-500 text-slate-950 px-2.5 py-1.5 rounded-lg text-[9px] font-extrabold uppercase shadow-sm">Pagar</button>
+                            <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-teal-600 hover:bg-teal-500 text-slate-950 px-2.5 py-1.5 rounded-lg text-[9px] font-extrabold uppercase">Pagar</button>
                             <button onclick="condonarRedito('${id}', '${item.nombre}', ${item.redito})" class="bg-orange-700/20 text-orange-400 border border-orange-900/50 hover:bg-orange-700/40 px-2.5 py-1.5 rounded-lg text-[9px] font-extrabold uppercase">Condonar</button>
                             <button onclick="verHistorial('${id}', '${item.nombre}')" class="bg-slate-700 text-white px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase">Historial</button>
                             <button onclick="formAbono('${id}', '${item.nombre}', ${item.capital})" class="bg-slate-700 text-white px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase">Abonar</button>
