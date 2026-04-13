@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -39,9 +40,7 @@
     <nav class="bg-gray-950 px-6 py-4 sticky top-0 z-40 border-b border-slate-700 shadow-xl">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-teal-950 rounded-lg flex items-center justify-center border border-teal-700">
-                    <span class="text-teal-300">🏦</span>
-                </div>
+                <div class="w-8 h-8 bg-teal-950 rounded-lg flex items-center justify-center border border-teal-700 font-bold">🏦</div>
                 <h1 class="text-lg font-black text-white uppercase tracking-tighter">Presta<span class="text-teal-400">Control</span></h1>
             </div>
             <div class="flex items-center gap-6">
@@ -49,9 +48,7 @@
                     <p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">Cartera Total</p>
                     <p id="totalPrestadoValue" class="text-teal-400 font-black text-lg leading-none">$0</p>
                 </div>
-                <button id="adminBtn" onclick="toggleAdmin()" class="text-[10px] bg-slate-800 text-slate-300 px-5 py-2.5 rounded-xl border border-slate-600 hover:border-teal-500 transition-all font-bold uppercase tracking-widest">
-                    🔒 Acceso Admin
-                </button>
+                <button id="adminBtn" onclick="toggleAdmin()" class="text-[10px] bg-slate-800 text-slate-300 px-5 py-2.5 rounded-xl border border-slate-600 hover:border-teal-500 transition-all font-bold uppercase tracking-widest">🔒 Acceso Admin</button>
             </div>
         </div>
     </nav>
@@ -71,10 +68,8 @@
                     <div class="flex gap-2">
                         <input type="number" id="amount" class="w-full p-3.5 rounded-xl text-sm font-bold" required>
                         <select id="interest" class="p-3.5 rounded-xl text-sm font-black">
-                            <option value="5">5%</option>
-                            <option value="10">10%</option>
-                            <option value="15">15%</option>
-                            <option value="20">20%</option>
+                            <option value="5">5%</option><option value="10">10%</option>
+                            <option value="15">15%</option><option value="20">20%</option>
                         </select>
                     </div>
                 </div>
@@ -86,9 +81,7 @@
                     <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Vencimiento</label>
                     <input type="date" id="dueDate" class="w-full p-3.5 rounded-xl text-sm font-medium" required>
                 </div>
-                <button type="submit" class="md:col-span-12 bg-gray-950 hover:bg-teal-900 text-teal-300 border border-teal-800 font-black py-4 rounded-2xl transition-all uppercase text-[11px] tracking-[0.3em]">
-                    Crear Nuevo Préstamo
-                </button>
+                <button type="submit" class="md:col-span-12 bg-gray-950 hover:bg-teal-900 text-teal-300 border border-teal-800 font-black py-4 rounded-2xl transition-all uppercase text-[11px] tracking-[0.3em]">Crear Nuevo Préstamo</button>
             </form>
         </div>
 
@@ -115,21 +108,20 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, orderBy, query, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-        // CONFIGURACIÓN DE FIREBASE (RELLENA CON TUS DATOS)
+        // CONFIGURA TUS DATOS AQUÍ
         const firebaseConfig = {
-            apiKey: "TU_API_KEY_AQUI",
+            apiKey: "TU_API_KEY",
             authDomain: "prestamos-a35bb.firebaseapp.com",
             projectId: "prestamos-a35bb",
             storageBucket: "prestamos-a35bb.appspot.com",
-            messagingSenderId: "TU_SENDER_ID_AQUI",
-            appId: "TU_APP_ID_AQUI"
+            messagingSenderId: "TU_SENDER_ID",
+            appId: "TU_APP_ID"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         let esAdmin = false;
 
-        // UTILIDADES
         const fFecha = (f) => f ? new Date(f + "T12:00:00").toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : "---";
 
         function mesesTranscurridos(fecha) {
@@ -142,20 +134,17 @@
             return meses > 0 ? meses : 0;
         }
 
-        // LÓGICA DE INTERFAZ
         window.toggleAdmin = () => {
             if (!esAdmin) {
                 if(prompt("Clave Admin:") === "3010") {
                     esAdmin = true;
                     document.getElementById('adminBtn').innerHTML = `<span class="text-teal-400">●</span> SALIR ADMIN`;
-                    document.getElementById('adminBtn').classList.add('bg-teal-950/20', 'border-teal-500/30');
                     document.getElementById('totalGlobalBox').classList.remove('hidden');
                     cargarDatos();
                 }
             } else {
                 esAdmin = false;
                 document.getElementById('adminBtn').innerHTML = `🔒 Acceso Admin`;
-                document.getElementById('adminBtn').classList.remove('bg-teal-950/20', 'border-teal-500/30');
                 document.getElementById('totalGlobalBox').classList.add('hidden');
                 cargarDatos();
             }
@@ -169,26 +158,37 @@
             document.getElementById('modalBody').innerHTML = html;
             document.getElementById('mainModal').classList.add('flex');
             const btn = document.getElementById('btnGuardar');
-            if (accion) { 
-                btn.style.display = 'block'; 
-                btn.onclick = async () => { await accion(); cerrarModal(); };
+            if (accion) { btn.style.display = 'block'; btn.onclick = async () => { await accion(); cerrarModal(); };
             } else { btn.style.display = 'none'; }
         }
 
-        // ACCIONES DE BD
         window.formPago = (id, nombre, redito) => {
             abrirModal("Registrar Pago", nombre, `
-                <div class="mb-4 p-4 bg-gray-900 rounded-xl text-center border border-slate-700">
-                    <p class="text-[10px] text-teal-400 font-bold uppercase tracking-widest">Rédito Mensual</p>
+                <div class="mb-4 p-4 bg-gray-900 rounded-xl border border-slate-700">
+                    <p class="text-[10px] text-teal-400 font-bold uppercase tracking-widest">Rédito Sugerido</p>
                     <p class="text-2xl font-black text-white">$${redito.toLocaleString()}</p>
                 </div>
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Monto Recibido</label>
                 <input type="number" id="mRedito" value="${redito}" class="w-full p-4 rounded-xl mb-4 font-bold text-teal-300">
+                <input type="text" id="notaPago" value="Pago de rédito mensual" class="w-full p-4 rounded-xl mb-4 text-sm">
                 <input type="date" id="fRedito" value="${new Date().toISOString().split('T')[0]}" class="w-full p-4 rounded-xl">
             `, async () => {
-                const montoRecibido = Number(document.getElementById('mRedito').value);
-                const fechaPago = document.getElementById('fRedito').value;
                 await addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
-                    monto: montoRecibido, esperado: redito, fecha: fechaPago, timestamp: new Date() 
+                    monto: Number(document.getElementById('mRedito').value), esperado: redito, nota: document.getElementById('notaPago').value, fecha: document.getElementById('fRedito').value, timestamp: new Date() 
+                });
+            });
+        };
+
+        window.condonarRedito = (id, nombre, redito) => {
+            abrirModal("Condonar Rédito", nombre, `
+                <div class="mb-4 p-6 bg-orange-950/20 rounded-xl border border-orange-900/50 text-center">
+                    <p class="text-orange-400 font-bold text-sm mb-2">¿Perdonar rédito de este mes?</p>
+                    <p class="text-[10px] text-slate-500 uppercase">Se registrará como $0 (Al corriente)</p>
+                </div>
+                <input type="date" id="fCondonar" value="${new Date().toISOString().split('T')[0]}" class="w-full p-4 rounded-xl">
+            `, async () => {
+                await addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
+                    monto: 0, esperado: redito, nota: "Rédito Condonado", fecha: document.getElementById('fCondonar').value, timestamp: new Date() 
                 });
             });
         };
@@ -200,42 +200,41 @@
                 const p = d.data(); total += Number(p.monto);
                 html += `
                 <div class="p-4 bg-gray-950 rounded-xl border border-slate-700 flex justify-between items-center mb-2">
-                    <div><p class="text-[10px] text-slate-500 font-bold uppercase">${fFecha(p.fecha)}</p><p class="font-black text-white">$${p.monto.toLocaleString()}</p></div>
+                    <div>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase">${fFecha(p.fecha)}</p>
+                        <p class="font-black ${p.monto === 0 ? 'text-orange-400' : 'text-white'}">$${p.monto.toLocaleString()}</p>
+                        <p class="text-[9px] text-teal-600 italic">${p.nota || ''}</p>
+                    </div>
                     <button onclick="borrarRegistroHistorial('${id}', '${d.id}')" class="text-slate-600 hover:text-red-400">🗑️</button>
                 </div>`;
             });
-            abrirModal("Historial", nombre, `<div class="mb-4 p-4 bg-teal-950 rounded-xl border border-teal-800"><p class="text-[10px] text-teal-300 font-bold uppercase">Cobrado</p><p class="text-xl font-black text-white">$${total.toLocaleString()}</p></div>${html}`, null);
+            abrirModal("Historial", nombre, `<div class="mb-4 p-4 bg-teal-950 rounded-xl border border-teal-800"><p class="text-[10px] text-teal-300 font-bold uppercase">Total Cobrado</p><p class="text-xl font-black text-white">$${total.toLocaleString()}</p></div>${html}`, null);
         };
 
         window.borrarRegistroHistorial = async (pId, rId) => { if(confirm(`¿Borrar este pago?`)) { await deleteDoc(doc(db, "prestamos", pId, "historial_reditos", rId)); cerrarModal(); } };
 
-        window.eliminarTodoRegistro = async (id, nombre) => { if(confirm(`¿ELIMINAR TODO el registro de ${nombre}?`)) { await deleteDoc(doc(db, "prestamos", id)); } };
+        window.eliminarTodoRegistro = async (id, nombre) => { if(confirm(`¿ESTÁS SEGURO? Se borrará a ${nombre} y TODO su historial permanentemente.`)) { await deleteDoc(doc(db, "prestamos", id)); } };
 
-        // CARGA EN TIEMPO REAL
         async function cargarDatos() {
             onSnapshot(query(collection(db, "prestamos"), orderBy("timestamp", "desc")), async (snap) => {
                 const lista = document.getElementById('loanList');
                 lista.innerHTML = ""; let totalG = 0;
-
                 for (const docu of snap.docs) {
                     const item = docu.data(); const id = docu.id; totalG += item.capital;
-                    
-                    // Cálculo de Saldo Global (Debido vs Pagado)
                     const mesesDebidos = mesesTranscurridos(item.fechaInicio);
                     const totalQueDebioPagar = mesesDebidos * item.redito;
-
                     const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
                     let totalPagadoReal = 0;
                     reditosSnap.forEach(r => { totalPagadoReal += Number(r.data().monto); });
-
                     const saldoFinal = Math.max(0, totalQueDebioPagar - totalPagadoReal);
 
                     const botones = esAdmin ? `
                         <div class="flex gap-2 mt-3 flex-wrap">
-                            <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-teal-600 hover:bg-teal-500 text-slate-950 px-2.5 py-1.5 rounded-lg text-[9px] font-extrabold uppercase">Pagar</button>
+                            <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-teal-600 hover:bg-teal-500 text-slate-950 px-2.5 py-1.5 rounded-lg text-[9px] font-extrabold uppercase shadow-sm">Pagar</button>
+                            <button onclick="condonarRedito('${id}', '${item.nombre}', ${item.redito})" class="bg-orange-700/20 text-orange-400 border border-orange-900/50 hover:bg-orange-700/40 px-2.5 py-1.5 rounded-lg text-[9px] font-extrabold uppercase">Condonar</button>
                             <button onclick="verHistorial('${id}', '${item.nombre}')" class="bg-slate-700 text-white px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase">Historial</button>
                             <button onclick="formAbono('${id}', '${item.nombre}', ${item.capital})" class="bg-slate-700 text-white px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase">Abonar</button>
-                            <button onclick="eliminarTodoRegistro('${id}', '${item.nombre}')" class="bg-red-950/30 text-red-400 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase border border-red-900/50">Borrar</button>
+                            <button onclick="eliminarTodoRegistro('${id}', '${item.nombre}')" class="bg-red-900/20 text-red-400 border border-red-800 hover:bg-red-900/40 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase">Borrar</button>
                         </div>` : '';
 
                     lista.innerHTML += `
@@ -255,7 +254,6 @@
             });
         }
 
-        // FUNCIONES DE EDICIÓN ADICIONALES
         window.formAbono = (id, nombre, actual) => {
             abrirModal("Abono Capital", nombre, `<input type="number" id="mAbono" class="w-full p-4 border rounded-xl font-bold bg-gray-900 text-teal-300" placeholder="Monto a descontar">`, async () => {
                 const m = Number(document.getElementById('mAbono').value);
