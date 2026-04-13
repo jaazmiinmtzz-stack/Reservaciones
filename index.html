@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -72,8 +71,10 @@
                     <div class="flex gap-2">
                         <input type="number" id="amount" class="w-full p-3.5 rounded-xl text-sm font-bold" required>
                         <select id="interest" class="p-3.5 rounded-xl text-sm font-black">
-                            <option value="5">5%</option><option value="10">10%</option>
-                            <option value="15">15%</option><option value="20">20%</option>
+                            <option value="5">5%</option>
+                            <option value="10">10%</option>
+                            <option value="15">15%</option>
+                            <option value="20">20%</option>
                         </select>
                     </div>
                 </div>
@@ -114,19 +115,21 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, orderBy, query, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
+        // CONFIGURACIÓN DE FIREBASE (RELLENA CON TUS DATOS)
         const firebaseConfig = {
-            apiKey: "TU_API_KEY",
+            apiKey: "TU_API_KEY_AQUI",
             authDomain: "prestamos-a35bb.firebaseapp.com",
             projectId: "prestamos-a35bb",
             storageBucket: "prestamos-a35bb.appspot.com",
-            messagingSenderId: "TU_SENDER_ID",
-            appId: "TU_APP_ID"
+            messagingSenderId: "TU_SENDER_ID_AQUI",
+            appId: "TU_APP_ID_AQUI"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         let esAdmin = false;
 
+        // UTILIDADES
         const fFecha = (f) => f ? new Date(f + "T12:00:00").toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : "---";
 
         function mesesTranscurridos(fecha) {
@@ -139,6 +142,7 @@
             return meses > 0 ? meses : 0;
         }
 
+        // LÓGICA DE INTERFAZ
         window.toggleAdmin = () => {
             if (!esAdmin) {
                 if(prompt("Clave Admin:") === "3010") {
@@ -165,10 +169,13 @@
             document.getElementById('modalBody').innerHTML = html;
             document.getElementById('mainModal').classList.add('flex');
             const btn = document.getElementById('btnGuardar');
-            if (accion) { btn.style.display = 'block'; btn.onclick = async () => { await accion(); cerrarModal(); };
+            if (accion) { 
+                btn.style.display = 'block'; 
+                btn.onclick = async () => { await accion(); cerrarModal(); };
             } else { btn.style.display = 'none'; }
         }
 
+        // ACCIONES DE BD
         window.formPago = (id, nombre, redito) => {
             abrirModal("Registrar Pago", nombre, `
                 <div class="mb-4 p-4 bg-gray-900 rounded-xl text-center border border-slate-700">
@@ -180,9 +187,8 @@
             `, async () => {
                 const montoRecibido = Number(document.getElementById('mRedito').value);
                 const fechaPago = document.getElementById('fRedito').value;
-                const faltante = redito - montoRecibido;
                 await addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
-                    monto: montoRecibido, esperado: redito, faltante: faltante > 0 ? faltante : 0, fecha: fechaPago, timestamp: new Date() 
+                    monto: montoRecibido, esperado: redito, fecha: fechaPago, timestamp: new Date() 
                 });
             });
         };
@@ -192,23 +198,20 @@
             let total = 0; let html = '';
             snap.forEach(d => {
                 const p = d.data(); total += Number(p.monto);
-                const falta = (p.esperado - p.monto);
                 html += `
                 <div class="p-4 bg-gray-950 rounded-xl border border-slate-700 flex justify-between items-center mb-2">
                     <div><p class="text-[10px] text-slate-500 font-bold uppercase">${fFecha(p.fecha)}</p><p class="font-black text-white">$${p.monto.toLocaleString()}</p></div>
-                    <div class="flex items-center gap-4">
-                        ${falta > 0 ? `<span class="text-[9px] px-2 py-1 rounded bg-red-900/20 border border-red-800 text-red-400 font-bold">FALTÓ: $${falta.toLocaleString()}</span>` : ''}
-                        <button onclick="borrarRegistroHistorial('${id}', '${d.id}', '${nombre}')" class="text-slate-600 hover:text-red-400">🗑️</button>
-                    </div>
+                    <button onclick="borrarRegistroHistorial('${id}', '${d.id}')" class="text-slate-600 hover:text-red-400">🗑️</button>
                 </div>`;
             });
             abrirModal("Historial", nombre, `<div class="mb-4 p-4 bg-teal-950 rounded-xl border border-teal-800"><p class="text-[10px] text-teal-300 font-bold uppercase">Cobrado</p><p class="text-xl font-black text-white">$${total.toLocaleString()}</p></div>${html}`, null);
         };
 
-        window.borrarRegistroHistorial = async (pId, rId, deudor) => { if(confirm(`¿Borrar pago?`)) { await deleteDoc(doc(db, "prestamos", pId, "historial_reditos", rId)); cerrarModal(); } };
+        window.borrarRegistroHistorial = async (pId, rId) => { if(confirm(`¿Borrar este pago?`)) { await deleteDoc(doc(db, "prestamos", pId, "historial_reditos", rId)); cerrarModal(); } };
 
         window.eliminarTodoRegistro = async (id, nombre) => { if(confirm(`¿ELIMINAR TODO el registro de ${nombre}?`)) { await deleteDoc(doc(db, "prestamos", id)); } };
 
+        // CARGA EN TIEMPO REAL
         async function cargarDatos() {
             onSnapshot(query(collection(db, "prestamos"), orderBy("timestamp", "desc")), async (snap) => {
                 const lista = document.getElementById('loanList');
@@ -216,19 +219,16 @@
 
                 for (const docu of snap.docs) {
                     const item = docu.data(); const id = docu.id; totalG += item.capital;
-                    const mesesDebidos = mesesTranscurridos(item.fechaInicio);
-                    const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
                     
-                    let pagosHechosCount = 0;
-                    let acumuladoFaltantes = 0;
-                    reditosSnap.forEach(r => {
-                        const p = r.data();
-                        pagosHechosCount++;
-                        acumuladoFaltantes += (Number(p.faltante) || 0);
-                    });
+                    // Cálculo de Saldo Global (Debido vs Pagado)
+                    const mesesDebidos = mesesTranscurridos(item.fechaInicio);
+                    const totalQueDebioPagar = mesesDebidos * item.redito;
 
-                    const mesesSinPago = (mesesDebidos > pagosHechosCount) ? (mesesDebidos - pagosHechosCount) : 0;
-                    const deudaAtrasada = (mesesSinPago * item.redito) + acumuladoFaltantes;
+                    const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
+                    let totalPagadoReal = 0;
+                    reditosSnap.forEach(r => { totalPagadoReal += Number(r.data().monto); });
+
+                    const saldoFinal = Math.max(0, totalQueDebioPagar - totalPagadoReal);
 
                     const botones = esAdmin ? `
                         <div class="flex gap-2 mt-3 flex-wrap">
@@ -245,9 +245,8 @@
                             <td class="px-6 py-6 text-right font-bold text-slate-100 text-sm">$${item.capital.toLocaleString()}</td>
                             <td class="px-6 py-6 text-right text-slate-400 text-sm">$${item.redito.toLocaleString()}</td>
                             <td class="px-6 py-6 text-right">
-                                <p class="${deudaAtrasada > 0 ? 'text-red-400' : 'text-slate-800'} font-black text-base">$${deudaAtrasada.toLocaleString()}</p>
-                                ${mesesSinPago > 0 ? `<p class="text-[8px] text-red-500 font-bold uppercase">${mesesSinPago} Meses sin Pago</p>` : ''}
-                                ${acumuladoFaltantes > 0 ? `<p class="text-[8px] text-orange-500 font-bold uppercase">Adeudo Incompletos: $${acumuladoFaltantes.toLocaleString()}</p>` : ''}
+                                <p class="${saldoFinal > 0 ? 'text-red-400' : 'text-teal-600'} font-black text-base">$${saldoFinal.toLocaleString()}</p>
+                                ${saldoFinal === 0 && mesesDebidos > 0 ? '<p class="text-[8px] text-teal-500 font-bold uppercase">Al corriente</p>' : ''}
                             </td>
                             <td class="px-6 py-6 text-center"><button onclick="window.editarVencimiento('${id}', '${item.nombre}', '${item.vencimiento}')" class="px-2 py-1 bg-gray-950 text-slate-400 text-[10px] font-bold rounded border border-slate-700">${fFecha(item.vencimiento)} ✏️</button></td>
                         </tr>`;
@@ -256,6 +255,7 @@
             });
         }
 
+        // FUNCIONES DE EDICIÓN ADICIONALES
         window.formAbono = (id, nombre, actual) => {
             abrirModal("Abono Capital", nombre, `<input type="number" id="mAbono" class="w-full p-4 border rounded-xl font-bold bg-gray-900 text-teal-300" placeholder="Monto a descontar">`, async () => {
                 const m = Number(document.getElementById('mAbono').value);
