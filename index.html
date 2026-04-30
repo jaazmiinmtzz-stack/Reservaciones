@@ -10,94 +10,93 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #cbd5e1; }
         .panel-cobalto { background-color: #1e293b; border: 1px solid #334155; border-radius: 1rem; }
         input, select { transition: all 0.2s ease; background-color: #111827 !important; border: 1px solid #334155 !important; color: #f1f5f9 !important; }
-        input:focus, select:focus { border-color: #2dd4bf !important; box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.1) !important; outline: none; }
         .modal { display: none !important; position: fixed; z-index: 100; inset: 0; background: rgba(2, 6, 17, 0.8); backdrop-filter: blur(4px); }
         .modal.flex { display: flex !important; }
-        .modal-content { background-color: #111827; border: 1px solid #334155; }
         table tbody tr:hover { background-color: #1e293b; }
+        .status-finalizado { opacity: 0.6; grayscale: 100%; }
     </style>
 </head>
 <body class="text-slate-300">
 
     <div id="mainModal" class="modal items-center justify-center p-4">
-        <div class="modal-content rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-            <div id="modalHeader" class="bg-gray-950 p-6 text-white flex justify-between items-center border-b border-slate-700">
+        <div class="modal-content bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-700">
+            <div class="bg-gray-950 p-6 flex justify-between items-center border-b border-slate-700">
                 <div>
                     <p class="text-[10px] text-teal-400 font-bold uppercase tracking-widest mb-1" id="modalUser">Usuario</p>
-                    <h3 class="text-lg font-extrabold tracking-tight" id="modalTitle">TÍTULO</h3>
+                    <h3 class="text-lg font-extrabold text-white" id="modalTitle">TÍTULO</h3>
                 </div>
-                <button onclick="cerrarModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-white text-xl">&times;</button>
+                <button onclick="cerrarModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
             </div>
-            <div class="p-8 max-h-[60vh] overflow-y-auto text-slate-100" id="modalBody"></div>
+            <div class="p-8 max-h-[60vh] overflow-y-auto" id="modalBody"></div>
             <div class="p-6 bg-gray-950 border-t border-slate-700 flex justify-end gap-3">
-                <button onclick="cerrarModal()" class="px-5 py-2.5 text-slate-400 hover:text-white font-bold text-sm">Cancelar</button>
-                <button id="btnGuardar" class="px-8 py-2.5 bg-teal-600 hover:bg-teal-500 text-slate-950 rounded-xl font-extrabold text-sm shadow-md transition-all active:scale-95">Confirmar</button>
+                <button onclick="cerrarModal()" class="px-5 py-2 text-slate-400 font-bold">Cancelar</button>
+                <button id="btnGuardar" class="px-8 py-2.5 bg-teal-600 hover:bg-teal-500 text-slate-950 rounded-xl font-extrabold shadow-md">Confirmar</button>
             </div>
         </div>
     </div>
 
-    <nav class="bg-gray-950 px-6 py-4 sticky top-0 z-40 border-b border-slate-700 shadow-xl">
+    <nav class="bg-gray-950 px-6 py-4 sticky top-0 z-40 border-b border-slate-700">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-teal-950 rounded-lg flex items-center justify-center border border-teal-700 font-bold">🏦</div>
+                <span class="text-2xl">🏦</span>
                 <h1 class="text-lg font-black text-white uppercase tracking-tighter">Presta<span class="text-teal-400">Control</span></h1>
             </div>
             <div class="flex items-center gap-6">
-                <div id="totalGlobalBox" class="hidden flex flex-col items-end">
-                    <p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">Cartera Total</p>
+                <div id="totalGlobalBox" class="hidden text-right">
+                    <p class="text-[9px] text-slate-500 font-black uppercase">Cartera Total Activa</p>
                     <p id="totalPrestadoValue" class="text-teal-400 font-black text-lg leading-none">$0</p>
                 </div>
-                <button id="adminBtn" onclick="toggleAdmin()" class="text-[10px] bg-slate-800 text-slate-300 px-5 py-2.5 rounded-xl border border-slate-600 hover:border-teal-500 transition-all font-bold uppercase tracking-widest">🔒 Acceso Admin</button>
+                <button id="adminBtn" onclick="toggleAdmin()" class="text-[10px] bg-slate-800 text-slate-300 px-5 py-2.5 rounded-xl border border-slate-600 font-bold uppercase">🔒 Acceso Admin</button>
             </div>
         </div>
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 py-8">
         <div class="panel-cobalto mb-8 overflow-hidden">
-            <div class="px-8 py-4 border-b border-slate-700 bg-gray-950/50">
-                <h2 class="text-xs font-black text-teal-300 uppercase tracking-widest">Nuevo Registro</h2>
-            </div>
             <form id="loanForm" class="p-8 grid grid-cols-1 md:grid-cols-12 gap-6">
                 <div class="md:col-span-4">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Deudor</label>
-                    <input type="text" id="debtor" class="w-full p-3.5 rounded-xl text-sm font-medium" required>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Deudor</label>
+                    <input type="text" id="debtor" class="w-full p-3.5 rounded-xl text-sm" required>
                 </div>
                 <div class="md:col-span-3">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Monto y %</label>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Monto y %</label>
                     <div class="flex gap-2">
                         <input type="number" id="amount" class="w-full p-3.5 rounded-xl text-sm font-bold" required>
                         <select id="interest" class="p-3.5 rounded-xl text-sm font-black">
-                            <option value="5">5%</option><option value="10">10%</option>
-                            <option value="15">15%</option><option value="20">20%</option>
+                            <option value="5">5%</option>
+                            <option value="10" selected>10%</option>
+                            <option value="15">15%</option>
+                            <option value="20">20%</option>
                         </select>
                     </div>
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Inicio</label>
-                    <input type="date" id="startDate" class="w-full p-3.5 rounded-xl text-sm font-medium" required>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Fecha Inicio</label>
+                    <input type="date" id="startDate" class="w-full p-3.5 rounded-xl text-sm" required>
                 </div>
                 <div class="md:col-span-3">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Vencimiento</label>
-                    <input type="date" id="dueDate" class="w-full p-3.5 rounded-xl text-sm font-medium" required>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Vencimiento</label>
+                    <input type="date" id="dueDate" class="w-full p-3.5 rounded-xl text-sm" required>
                 </div>
-                <button type="submit" class="md:col-span-12 bg-gray-950 hover:bg-teal-900 text-teal-300 border border-teal-800 font-black py-4 rounded-2xl transition-all uppercase text-[11px] tracking-[0.3em]">Registrar Préstamo</button>
+                <button type="submit" class="md:col-span-12 bg-gray-950 border border-teal-800 hover:bg-teal-900 text-teal-400 font-black py-4 rounded-2xl transition-all uppercase text-[11px] tracking-widest">Registrar Préstamo</button>
             </form>
         </div>
 
         <div class="panel-cobalto overflow-hidden shadow-2xl">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-800">
-                    <thead class="text-white bg-gray-950">
+                    <thead class="bg-gray-950">
                         <tr>
                             <th class="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Deudor</th>
                             <th class="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Captura</th>
                             <th class="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Capital</th>
+                            <th class="px-6 py-5 text-center text-[10px] font-black text-teal-500 uppercase tracking-widest">%</th>
                             <th class="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Rédito</th>
-                            <th class="px-6 py-5 text-right text-[10px] font-black text-teal-400 uppercase tracking-widest">Total Atrasado</th>
+                            <th class="px-6 py-5 text-right text-[10px] font-black text-teal-400 uppercase tracking-widest">Atraso</th>
                             <th class="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Vencimiento</th>
                         </tr>
                     </thead>
-                    <tbody id="loanList" class="divide-y divide-slate-800 text-slate-100"></tbody>
+                    <tbody id="loanList" class="divide-y divide-slate-800"></tbody>
                 </table>
             </div>
         </div>
@@ -120,7 +119,7 @@
         const db = getFirestore(app);
         let esAdmin = false;
 
-        const fFecha = (f) => f ? new Date(f + "T12:00:00").toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : "---";
+        const fFecha = (f) => f ? new Date(f + "T12:00:00").toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : "---";
 
         function mesesTranscurridos(fecha) {
             const inicio = new Date(fecha + "T12:00:00");
@@ -132,96 +131,23 @@
             return meses > 0 ? meses : 0;
         }
 
+        window.cerrarModal = () => document.getElementById('mainModal').classList.remove('flex');
+
         window.toggleAdmin = () => {
             if (!esAdmin) {
-                if(prompt("Clave Admin:") === "3010") {
+                const pass = prompt("Clave Admin:");
+                if(pass === "3010") {
                     esAdmin = true;
                     document.getElementById('adminBtn').innerHTML = `<span class="text-teal-400">●</span> SALIR ADMIN`;
                     document.getElementById('totalGlobalBox').classList.remove('hidden');
-                    cargarDatos();
                 }
             } else {
                 esAdmin = false;
                 document.getElementById('adminBtn').innerHTML = `🔒 Acceso Admin`;
                 document.getElementById('totalGlobalBox').classList.add('hidden');
-                cargarDatos();
             }
+            cargarDatos();
         };
-
-        window.cerrarModal = () => { document.getElementById('mainModal').classList.remove('flex'); };
-
-        function abrirModal(titulo, deudor, html, accion) {
-            document.getElementById('modalTitle').innerText = titulo;
-            document.getElementById('modalUser').innerText = deudor;
-            document.getElementById('modalBody').innerHTML = html;
-            document.getElementById('mainModal').classList.add('flex');
-            const btn = document.getElementById('btnGuardar');
-            if (accion) { btn.style.display = 'block'; btn.onclick = async () => { await accion(); cerrarModal(); };
-            } else { btn.style.display = 'none'; }
-        }
-
-        // LÓGICA DE PAGOS Y CONDONACIÓN
-        window.formPago = (id, nombre, redito) => {
-            abrirModal("Registrar Pago", nombre, `
-                <div class="mb-4 p-4 bg-gray-900 rounded-xl border border-slate-700">
-                    <p class="text-[10px] text-teal-400 font-bold uppercase tracking-widest">Rédito Mensual</p>
-                    <p class="text-2xl font-black text-white">$${redito.toLocaleString()}</p>
-                </div>
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Monto Recibido</label>
-                <input type="number" id="mRedito" value="${redito}" class="w-full p-4 rounded-xl mb-4 font-bold text-teal-300">
-                <input type="text" id="notaPago" value="Pago de rédito" class="w-full p-4 rounded-xl mb-4 text-sm">
-                <input type="date" id="fRedito" value="${new Date().toISOString().split('T')[0]}" class="w-full p-4 rounded-xl">
-            `, async () => {
-                await addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
-                    monto: Number(document.getElementById('mRedito').value), 
-                    valorContable: Number(document.getElementById('mRedito').value), // Lo que resta de la deuda
-                    esperado: redito, 
-                    nota: document.getElementById('notaPago').value, 
-                    fecha: document.getElementById('fRedito').value, 
-                    timestamp: new Date() 
-                });
-            });
-        };
-
-        window.condonarRedito = (id, nombre, redito) => {
-            abrirModal("Condonar Rédito", nombre, `
-                <div class="mb-4 p-6 bg-orange-950/20 rounded-xl border border-orange-900/50 text-center text-balance">
-                    <p class="text-orange-400 font-bold text-sm mb-2">¿Perdonar rédito de este mes?</p>
-                    <p class="text-[10px] text-slate-500 uppercase">Esto eliminará $${redito.toLocaleString()} de la deuda atrasada</p>
-                </div>
-                <input type="date" id="fCondonar" value="${new Date().toISOString().split('T')[0]}" class="w-full p-4 rounded-xl">
-            `, async () => {
-                await addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
-                    monto: 0, 
-                    valorContable: redito, // IMPORTANTE: Aquí decimos que aunque pagó $0, le restamos el total del mes a la deuda
-                    esperado: redito, 
-                    nota: "Rédito Condonado (Perdonado)", 
-                    fecha: document.getElementById('fCondonar').value, 
-                    timestamp: new Date() 
-                });
-            });
-        };
-
-        window.verHistorial = async (id, nombre) => {
-            const snap = await getDocs(query(collection(db, "prestamos", id, "historial_reditos"), orderBy("timestamp", "desc")));
-            let totalReal = 0; let html = '';
-            snap.forEach(d => {
-                const p = d.data(); totalReal += Number(p.monto);
-                html += `
-                <div class="p-4 bg-gray-950 rounded-xl border border-slate-700 flex justify-between items-center mb-2">
-                    <div>
-                        <p class="text-[10px] text-slate-500 font-bold uppercase">${fFecha(p.fecha)}</p>
-                        <p class="font-black ${p.monto === 0 ? 'text-orange-400' : 'text-white'}">$${p.monto.toLocaleString()}</p>
-                        <p class="text-[9px] text-teal-600 italic font-medium">${p.nota || ''}</p>
-                    </div>
-                    <button onclick="borrarRegistroHistorial('${id}', '${d.id}')" class="text-slate-600 hover:text-red-400">🗑️</button>
-                </div>`;
-            });
-            abrirModal("Historial", nombre, `<div class="mb-4 p-4 bg-teal-950 rounded-xl border border-teal-800"><p class="text-[10px] text-teal-300 font-bold uppercase">Dinero Ingresado</p><p class="text-xl font-black text-white">$${totalReal.toLocaleString()}</p></div>${html}`, null);
-        };
-
-        window.borrarRegistroHistorial = async (pId, rId) => { if(confirm(`¿Borrar registro?`)) { await deleteDoc(doc(db, "prestamos", pId, "historial_reditos", rId)); cerrarModal(); } };
-        window.eliminarTodoRegistro = async (id, nombre) => { if(confirm(`¿Eliminar permanentemente a ${nombre}?`)) { await deleteDoc(doc(db, "prestamos", id)); } };
 
         async function cargarDatos() {
             onSnapshot(query(collection(db, "prestamos"), orderBy("timestamp", "desc")), async (snap) => {
@@ -229,63 +155,165 @@
                 lista.innerHTML = ""; let totalG = 0;
                 
                 for (const docu of snap.docs) {
-                    const item = docu.data(); const id = docu.id; totalG += item.capital;
+                    const item = docu.data(); const id = docu.id; 
+                    const isFinalizado = item.finalizado === true;
+                    
+                    if(!isFinalizado) totalG += item.capital;
+                    
                     const mesesDebidos = mesesTranscurridos(item.fechaInicio);
                     const totalQueDebioPagar = mesesDebidos * item.redito;
                     
                     const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
                     let loQueYaNoDebe = 0;
-                    reditosSnap.forEach(r => { 
-                        const p = r.data();
-                        // Sumamos el valor contable (lo que pagó + lo que se le perdonó)
-                        loQueYaNoDebe += Number(p.valorContable || p.monto); 
-                    });
+                    reditosSnap.forEach(r => { loQueYaNoDebe += Number(r.data().valorContable || r.data().monto); });
                     
-                    const saldoFinal = Math.max(0, totalQueDebioPagar - loQueYaNoDebe);
+                    // Si está finalizado, el saldo siempre es 0
+                    const saldoFinal = isFinalizado ? 0 : Math.max(0, totalQueDebioPagar - loQueYaNoDebe);
 
-                    const botones = esAdmin ? `
-                        <div class="flex gap-2 mt-3 flex-wrap">
-                            <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-teal-600 hover:bg-teal-500 text-slate-950 px-2.5 py-1.5 rounded-lg text-[9px] font-extrabold uppercase">Pagar</button>
-                            <button onclick="condonarRedito('${id}', '${item.nombre}', ${item.redito})" class="bg-orange-700/20 text-orange-400 border border-orange-900/50 hover:bg-orange-700/40 px-2.5 py-1.5 rounded-lg text-[9px] font-extrabold uppercase">Condonar</button>
-                            <button onclick="verHistorial('${id}', '${item.nombre}')" class="bg-slate-700 text-white px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase">Historial</button>
-                            <button onclick="formAbono('${id}', '${item.nombre}', ${item.capital})" class="bg-slate-700 text-white px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase">Abonar</button>
-                            <button onclick="eliminarTodoRegistro('${id}', '${item.nombre}')" class="bg-red-900/20 text-red-400 border border-red-800 hover:bg-red-900/40 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase">Borrar</button>
-                        </div>` : '';
+                    let botones = '';
+                    if (esAdmin) {
+                        if (!isFinalizado) {
+                            botones = `
+                            <div class="flex gap-1.5 mt-3 flex-wrap">
+                                <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-teal-600 text-slate-950 px-2 py-1 rounded text-[9px] font-bold uppercase">Pagar</button>
+                                <button onclick="condonarRedito('${id}', '${item.nombre}', ${item.redito})" class="bg-orange-600/20 text-orange-400 border border-orange-800 px-2 py-1 rounded text-[9px] font-bold uppercase">Condonar</button>
+                                <button onclick="verHistorial('${id}', '${item.nombre}')" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold uppercase">Historial</button>
+                                <button onclick="formEditGral('${id}', '${item.nombre}', ${item.capital}, '${item.fechaInicio}', '${item.vencimiento}', ${item.tasa})" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold uppercase">Editar</button>
+                                <button onclick="marcarComoPagado('${id}', '${item.nombre}')" class="bg-teal-900/50 text-teal-300 border border-teal-700 px-2 py-1 rounded text-[9px] font-bold uppercase">Liquidar</button>
+                                <button onclick="eliminarRegistro('${id}', '${item.nombre}')" class="bg-red-900/40 text-red-400 border border-red-800 px-2 py-1 rounded text-[9px] font-bold uppercase">Borrar</button>
+                            </div>`;
+                        } else {
+                            botones = `
+                            <div class="flex gap-1.5 mt-3">
+                                <span class="text-[10px] font-bold text-teal-500 uppercase tracking-widest italic">✓ Préstamo Liquidado</span>
+                                <button onclick="eliminarRegistro('${id}', '${item.nombre}')" class="bg-red-900/20 text-red-400 px-2 py-1 rounded text-[9px] font-bold uppercase">Eliminar Registro</button>
+                            </div>`;
+                        }
+                    }
 
                     lista.innerHTML += `
-                        <tr>
-                            <td class="px-6 py-6"><span class="font-extrabold text-white uppercase text-sm">${item.nombre}</span>${botones}</td>
-                            <td class="px-6 py-6 text-center"><button onclick="editarCaptura('${id}', '${item.nombre}', '${item.fechaInicio}')" class="text-xs text-slate-500 font-bold hover:text-teal-400">${fFecha(item.fechaInicio)}</button></td>
-                            <td class="px-6 py-6 text-right font-bold text-slate-100 text-sm">$${item.capital.toLocaleString()}</td>
-                            <td class="px-6 py-6 text-right text-slate-400 text-sm">$${item.redito.toLocaleString()}</td>
-                            <td class="px-6 py-6 text-right">
-                                <p class="${saldoFinal > 0 ? 'text-red-400' : 'text-teal-600'} font-black text-base">$${saldoFinal.toLocaleString()}</p>
-                                ${saldoFinal === 0 && mesesDebidos > 0 ? '<p class="text-[8px] text-teal-500 font-bold uppercase">Al corriente</p>' : ''}
+                        <tr class="border-b border-slate-800 ${isFinalizado ? 'status-finalizado' : ''}">
+                            <td class="px-6 py-5">
+                                <div class="flex items-center gap-2">
+                                    <p class="font-bold text-white uppercase text-sm">${item.nombre}</p>
+                                    ${isFinalizado ? '<span class="bg-teal-500 text-slate-900 text-[8px] px-1.5 py-0.5 rounded-full font-black">PAGADO</span>' : ''}
+                                </div>
+                                ${botones}
                             </td>
-                            <td class="px-6 py-6 text-center"><button onclick="window.editarVencimiento('${id}', '${item.nombre}', '${item.vencimiento}')" class="px-2 py-1 bg-gray-950 text-slate-400 text-[10px] font-bold rounded border border-slate-700">${fFecha(item.vencimiento)} ✏️</button></td>
+                            <td class="px-6 py-5 text-center text-xs">${fFecha(item.fechaInicio)}</td>
+                            <td class="px-6 py-5 text-right font-bold text-slate-100">$${item.capital.toLocaleString()}</td>
+                            <td class="px-6 py-5 text-center"><span class="text-teal-400 font-black text-[10px]">${item.tasa}%</span></td>
+                            <td class="px-6 py-5 text-right text-slate-400 font-bold">$${item.redito.toLocaleString()}</td>
+                            <td class="px-6 py-5 text-right">
+                                <p class="${saldoFinal > 0 ? 'text-red-400' : 'text-teal-500'} font-black text-base">$${saldoFinal.toLocaleString()}</p>
+                            </td>
+                            <td class="px-6 py-5 text-center text-xs text-slate-500">${fFecha(item.vencimiento)}</td>
                         </tr>`;
                 }
                 document.getElementById('totalPrestadoValue').innerText = `$${totalG.toLocaleString()}`;
             });
         }
 
-        window.formAbono = (id, nombre, actual) => {
-            abrirModal("Abono Capital", nombre, `<input type="number" id="mAbono" class="w-full p-4 border rounded-xl font-bold bg-gray-900 text-teal-300" placeholder="Monto a descontar">`, async () => {
-                const m = Number(document.getElementById('mAbono').value);
-                if(m > 0 && m <= actual) { await updateDoc(doc(db, "prestamos", id), { capital: actual - m }); }
-            });
+        // --- NUEVA FUNCIÓN: MARCAR COMO PAGADO ---
+        window.marcarComoPagado = async (id, nombre) => {
+            if(confirm(`¿Confirmas que ${nombre} ha liquidado la totalidad de la deuda? Esto bloqueará futuras ediciones.`)) {
+                await updateDoc(doc(db, "prestamos", id), { 
+                    finalizado: true,
+                    fechaCierre: new Date().toISOString().split('T')[0]
+                });
+            }
         };
 
-        window.editarVencimiento = (id, nombre, actual) => {
-            abrirModal("Vencimiento", nombre, `<input type="date" id="newDueDate" value="${actual}" class="w-full p-4 rounded-xl bg-gray-900 text-white">`, async () => {
-                await updateDoc(doc(db, "prestamos", id), { vencimiento: document.getElementById('newDueDate').value });
-            });
+        window.formEditGral = (id, nombre, capital, fechaIni, fechaVen, tasa) => {
+            document.getElementById('modalTitle').innerText = "Editar Préstamo";
+            document.getElementById('modalUser').innerText = nombre;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Nuevo Capital</label>
+                        <input type="number" id="editCap" value="${capital}" class="w-full p-4 rounded-xl bg-gray-950 text-teal-400 font-bold text-xl">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Nueva Fecha Inicio</label>
+                        <input type="date" id="editFechaIni" value="${fechaIni}" class="w-full p-4 rounded-xl bg-gray-950 text-white">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Nueva Fecha Vencimiento</label>
+                        <input type="date" id="editFechaVen" value="${fechaVen || ''}" class="w-full p-4 rounded-xl bg-gray-950 text-white">
+                    </div>
+                </div>
+            `;
+            document.getElementById('btnGuardar').onclick = async () => {
+                const nCap = Number(document.getElementById('editCap').value);
+                const nFechaI = document.getElementById('editFechaIni').value;
+                const nFechaV = document.getElementById('editFechaVen').value;
+                await updateDoc(doc(db, "prestamos", id), { 
+                    capital: nCap, 
+                    fechaInicio: nFechaI,
+                    vencimiento: nFechaV,
+                    redito: nCap * (tasa / 100) 
+                });
+                cerrarModal();
+            };
+            document.getElementById('mainModal').classList.add('flex');
         };
 
-        window.editarCaptura = (id, nombre, actual) => {
-            abrirModal("Fecha Captura", nombre, `<input type="date" id="newCaptureDate" value="${actual}" class="w-full p-4 rounded-xl bg-gray-900 text-white">`, async () => {
-                await updateDoc(doc(db, "prestamos", id), { fechaInicio: document.getElementById('newCaptureDate').value });
+        window.formPago = (id, nombre, redito) => {
+            document.getElementById('modalTitle').innerText = "Registrar Pago";
+            document.getElementById('modalUser').innerText = nombre;
+            document.getElementById('modalBody').innerHTML = `
+                <input type="number" id="mRedito" value="${redito}" class="w-full p-4 rounded-xl bg-gray-950 text-teal-400 font-bold text-xl mb-4">
+                <input type="date" id="fRedito" value="${new Date().toISOString().split('T')[0]}" class="w-full p-4 rounded-xl bg-gray-950 text-white">
+            `;
+            document.getElementById('btnGuardar').onclick = async () => {
+                await addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
+                    monto: Number(document.getElementById('mRedito').value), 
+                    valorContable: Number(document.getElementById('mRedito').value), 
+                    fecha: document.getElementById('fRedito').value, 
+                    timestamp: new Date() 
+                });
+                cerrarModal();
+            };
+            document.getElementById('mainModal').classList.add('flex');
+        };
+
+        window.condonarRedito = (id, nombre, redito) => {
+            if(confirm(`¿Condonar un mes ($${redito}) a ${nombre}?`)) {
+                addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
+                    monto: 0, valorContable: redito, nota: "Condonado", 
+                    fecha: new Date().toISOString().split('T')[0], timestamp: new Date() 
+                });
+            }
+        };
+
+        window.verHistorial = async (id, nombre) => {
+            const snap = await getDocs(query(collection(db, "prestamos", id, "historial_reditos"), orderBy("timestamp", "desc")));
+            let html = '';
+            snap.forEach(d => {
+                const p = d.data();
+                html += `<div class="p-3 bg-gray-950 border border-slate-800 rounded-lg mb-2 flex justify-between items-center">
+                    <div><p class="text-xs text-slate-500">${fFecha(p.fecha)}</p><p class="font-bold text-teal-400">$${p.monto.toLocaleString()}</p></div>
+                    <button onclick="borrarHistorialItem('${id}','${d.id}')" class="text-red-500 text-xs uppercase font-bold">Borrar</button>
+                </div>`;
             });
+            document.getElementById('modalTitle').innerText = "Historial de Pagos";
+            document.getElementById('modalUser').innerText = nombre;
+            document.getElementById('modalBody').innerHTML = html || '<p class="text-center text-slate-500">Sin movimientos</p>';
+            document.getElementById('btnGuardar').style.display = 'none';
+            document.getElementById('mainModal').classList.add('flex');
+        };
+
+        window.borrarHistorialItem = async (pid, rid) => { 
+            if(confirm("¿Borrar este pago?")) { 
+                await deleteDoc(doc(db, "prestamos", pid, "historial_reditos", rid)); 
+                cerrarModal(); 
+            } 
+        };
+
+        window.eliminarRegistro = async (id, nombre) => { 
+            if(confirm(`¿ELIMINAR TODO EL REGISTRO DE ${nombre}?`)) {
+                await deleteDoc(doc(db, "prestamos", id)); 
+            }
         };
 
         document.getElementById('loanForm').addEventListener('submit', async (e) => {
@@ -293,8 +321,14 @@
             const cap = Number(document.getElementById('amount').value);
             const tasa = Number(document.getElementById('interest').value);
             await addDoc(collection(db, "prestamos"), {
-                nombre: document.getElementById('debtor').value, capital: cap, tasa: tasa, redito: cap * (tasa / 100),
-                fechaInicio: document.getElementById('startDate').value, vencimiento: document.getElementById('dueDate').value, timestamp: new Date()
+                nombre: document.getElementById('debtor').value, 
+                capital: cap, 
+                tasa: tasa, 
+                redito: cap * (tasa / 100),
+                fechaInicio: document.getElementById('startDate').value, 
+                vencimiento: document.getElementById('dueDate').value, 
+                timestamp: new Date(),
+                finalizado: false
             });
             e.target.reset();
         });
