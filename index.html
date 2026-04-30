@@ -13,11 +13,12 @@
         .modal { display: none !important; position: fixed; z-index: 100; inset: 0; background: rgba(2, 6, 17, 0.8); backdrop-filter: blur(4px); }
         .modal.flex { display: flex !important; }
         table tbody tr:hover { background-color: #1e293b; }
-        .status-finalizado { opacity: 0.6; grayscale: 100%; }
+        .status-finalizado { opacity: 0.6; }
     </style>
 </head>
 <body class="text-slate-300">
 
+    <!-- MODAL PRINCIPAL -->
     <div id="mainModal" class="modal items-center justify-center p-4">
         <div class="modal-content bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-700">
             <div class="bg-gray-950 p-6 flex justify-between items-center border-b border-slate-700">
@@ -35,15 +36,16 @@
         </div>
     </div>
 
+    <!-- NAVBAR -->
     <nav class="bg-gray-950 px-6 py-4 sticky top-0 z-40 border-b border-slate-700">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
+        <div class="max-w-77xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <span class="text-2xl">🏦</span>
                 <h1 class="text-lg font-black text-white uppercase tracking-tighter">Presta<span class="text-teal-400">Control</span></h1>
             </div>
             <div class="flex items-center gap-6">
                 <div id="totalGlobalBox" class="hidden text-right">
-                    <p class="text-[9px] text-slate-500 font-black uppercase">Cartera Total Activa</p>
+                    <p class="text-[9px] text-slate-500 font-black uppercase">Cartera Activa</p>
                     <p id="totalPrestadoValue" class="text-teal-400 font-black text-lg leading-none">$0</p>
                 </div>
                 <button id="adminBtn" onclick="toggleAdmin()" class="text-[10px] bg-slate-800 text-slate-300 px-5 py-2.5 rounded-xl border border-slate-600 font-bold uppercase">🔒 Acceso Admin</button>
@@ -52,6 +54,7 @@
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- FORMULARIO -->
         <div class="panel-cobalto mb-8 overflow-hidden">
             <form id="loanForm" class="p-8 grid grid-cols-1 md:grid-cols-12 gap-6">
                 <div class="md:col-span-4">
@@ -82,6 +85,7 @@
             </form>
         </div>
 
+        <!-- TABLA -->
         <div class="panel-cobalto overflow-hidden shadow-2xl">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-800">
@@ -117,7 +121,9 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        
         let esAdmin = false;
+        let lastSnap = null; // Guardamos el último snapshot para refrescar la UI sin llamar a Firebase de nuevo
 
         const fFecha = (f) => f ? new Date(f + "T12:00:00").toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : "---";
 
@@ -135,8 +141,7 @@
 
         window.toggleAdmin = () => {
             if (!esAdmin) {
-                const pass = prompt("Clave Admin:");
-                if(pass === "3010") {
+                if(prompt("Clave Admin:") === "3010") {
                     esAdmin = true;
                     document.getElementById('adminBtn').innerHTML = `<span class="text-teal-400">●</span> SALIR ADMIN`;
                     document.getElementById('totalGlobalBox').classList.remove('hidden');
@@ -146,81 +151,84 @@
                 document.getElementById('adminBtn').innerHTML = `🔒 Acceso Admin`;
                 document.getElementById('totalGlobalBox').classList.add('hidden');
             }
-            cargarDatos();
+            if(lastSnap) renderTable(lastSnap); // Refrescamos la vista con el modo admin cambiado
         };
 
-        async function cargarDatos() {
-            onSnapshot(query(collection(db, "prestamos"), orderBy("timestamp", "desc")), async (snap) => {
-                const lista = document.getElementById('loanList');
-                lista.innerHTML = ""; let totalG = 0;
+        // ESCUCHADOR ÚNICO (Evita duplicados)
+        onSnapshot(query(collection(db, "prestamos"), orderBy("timestamp", "desc")), (snap) => {
+            lastSnap = snap;
+            renderTable(snap);
+        });
+
+        async function renderTable(snap) {
+            const lista = document.getElementById('loanList');
+            lista.innerHTML = ""; 
+            let totalG = 0;
+            
+            for (const docu of snap.docs) {
+                const item = docu.data(); 
+                const id = docu.id; 
+                const isFinalizado = item.finalizado === true;
                 
-                for (const docu of snap.docs) {
-                    const item = docu.data(); const id = docu.id; 
-                    const isFinalizado = item.finalizado === true;
-                    
-                    if(!isFinalizado) totalG += item.capital;
-                    
-                    const mesesDebidos = mesesTranscurridos(item.fechaInicio);
-                    const totalQueDebioPagar = mesesDebidos * item.redito;
-                    
-                    const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
-                    let loQueYaNoDebe = 0;
-                    reditosSnap.forEach(r => { loQueYaNoDebe += Number(r.data().valorContable || r.data().monto); });
-                    
-                    // Si está finalizado, el saldo siempre es 0
-                    const saldoFinal = isFinalizado ? 0 : Math.max(0, totalQueDebioPagar - loQueYaNoDebe);
+                if(!isFinalizado) totalG += item.capital;
+                
+                const mesesDebidos = mesesTranscurridos(item.fechaInicio);
+                const totalQueDebioPagar = mesesDebidos * item.redito;
+                
+                // Obtenemos pagos (esto es una subcolección, se queda asíncrono)
+                const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
+                let loQueYaNoDebe = 0;
+                reditosSnap.forEach(r => { loQueYaNoDebe += Number(r.data().valorContable || r.data().monto); });
+                
+                const saldoFinal = isFinalizado ? 0 : Math.max(0, totalQueDebioPagar - loQueYaNoDebe);
 
-                    let botones = '';
-                    if (esAdmin) {
-                        if (!isFinalizado) {
-                            botones = `
-                            <div class="flex gap-1.5 mt-3 flex-wrap">
-                                <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-teal-600 text-slate-950 px-2 py-1 rounded text-[9px] font-bold uppercase">Pagar</button>
-                                <button onclick="condonarRedito('${id}', '${item.nombre}', ${item.redito})" class="bg-orange-600/20 text-orange-400 border border-orange-800 px-2 py-1 rounded text-[9px] font-bold uppercase">Condonar</button>
-                                <button onclick="verHistorial('${id}', '${item.nombre}')" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold uppercase">Historial</button>
-                                <button onclick="formEditGral('${id}', '${item.nombre}', ${item.capital}, '${item.fechaInicio}', '${item.vencimiento}', ${item.tasa})" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold uppercase">Editar</button>
-                                <button onclick="marcarComoPagado('${id}', '${item.nombre}')" class="bg-teal-900/50 text-teal-300 border border-teal-700 px-2 py-1 rounded text-[9px] font-bold uppercase">Liquidar</button>
-                                <button onclick="eliminarRegistro('${id}', '${item.nombre}')" class="bg-red-900/40 text-red-400 border border-red-800 px-2 py-1 rounded text-[9px] font-bold uppercase">Borrar</button>
-                            </div>`;
-                        } else {
-                            botones = `
-                            <div class="flex gap-1.5 mt-3">
-                                <span class="text-[10px] font-bold text-teal-500 uppercase tracking-widest italic">✓ Préstamo Liquidado</span>
-                                <button onclick="eliminarRegistro('${id}', '${item.nombre}')" class="bg-red-900/20 text-red-400 px-2 py-1 rounded text-[9px] font-bold uppercase">Eliminar Registro</button>
-                            </div>`;
-                        }
+                let botones = '';
+                if (esAdmin) {
+                    if (!isFinalizado) {
+                        botones = `
+                        <div class="flex gap-1.5 mt-3 flex-wrap">
+                            <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-teal-600 text-slate-950 px-2 py-1 rounded text-[9px] font-bold uppercase">Pagar</button>
+                            <button onclick="condonarRedito('${id}', '${item.nombre}', ${item.redito})" class="bg-orange-600/20 text-orange-400 border border-orange-800 px-2 py-1 rounded text-[9px] font-bold uppercase">Condonar</button>
+                            <button onclick="verHistorial('${id}', '${item.nombre}')" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold uppercase">Historial</button>
+                            <button onclick="formEditGral('${id}', '${item.nombre}', ${item.capital}, '${item.fechaInicio}', '${item.vencimiento}', ${item.tasa})" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold uppercase">Editar</button>
+                            <button onclick="marcarComoPagado('${id}', '${item.nombre}')" class="bg-teal-900/50 text-teal-300 border border-teal-700 px-2 py-1 rounded text-[9px] font-bold uppercase">Liquidar</button>
+                            <button onclick="eliminarRegistro('${id}', '${item.nombre}')" class="bg-red-900/40 text-red-400 border border-red-800 px-2 py-1 rounded text-[9px] font-bold uppercase">Borrar</button>
+                        </div>`;
+                    } else {
+                        botones = `
+                        <div class="flex gap-1.5 mt-3">
+                            <span class="text-[10px] font-bold text-teal-500 uppercase tracking-widest italic">✓ Liquidado</span>
+                            <button onclick="eliminarRegistro('${id}', '${item.nombre}')" class="bg-red-900/20 text-red-400 px-2 py-1 rounded text-[9px] font-bold uppercase ml-2">Borrar</button>
+                        </div>`;
                     }
-
-                    lista.innerHTML += `
-                        <tr class="border-b border-slate-800 ${isFinalizado ? 'status-finalizado' : ''}">
-                            <td class="px-6 py-5">
-                                <div class="flex items-center gap-2">
-                                    <p class="font-bold text-white uppercase text-sm">${item.nombre}</p>
-                                    ${isFinalizado ? '<span class="bg-teal-500 text-slate-900 text-[8px] px-1.5 py-0.5 rounded-full font-black">PAGADO</span>' : ''}
-                                </div>
-                                ${botones}
-                            </td>
-                            <td class="px-6 py-5 text-center text-xs">${fFecha(item.fechaInicio)}</td>
-                            <td class="px-6 py-5 text-right font-bold text-slate-100">$${item.capital.toLocaleString()}</td>
-                            <td class="px-6 py-5 text-center"><span class="text-teal-400 font-black text-[10px]">${item.tasa}%</span></td>
-                            <td class="px-6 py-5 text-right text-slate-400 font-bold">$${item.redito.toLocaleString()}</td>
-                            <td class="px-6 py-5 text-right">
-                                <p class="${saldoFinal > 0 ? 'text-red-400' : 'text-teal-500'} font-black text-base">$${saldoFinal.toLocaleString()}</p>
-                            </td>
-                            <td class="px-6 py-5 text-center text-xs text-slate-500">${fFecha(item.vencimiento)}</td>
-                        </tr>`;
                 }
-                document.getElementById('totalPrestadoValue').innerText = `$${totalG.toLocaleString()}`;
-            });
+
+                lista.innerHTML += `
+                    <tr class="border-b border-slate-800 ${isFinalizado ? 'status-finalizado' : ''}">
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-2">
+                                <p class="font-bold text-white uppercase text-sm">${item.nombre}</p>
+                                ${isFinalizado ? '<span class="bg-teal-500 text-slate-900 text-[8px] px-1.5 py-0.5 rounded-full font-black">PAGADO</span>' : ''}
+                            </div>
+                            ${botones}
+                        </td>
+                        <td class="px-6 py-5 text-center text-xs text-slate-400">${fFecha(item.fechaInicio)}</td>
+                        <td class="px-6 py-5 text-right font-bold text-slate-100">$${item.capital.toLocaleString()}</td>
+                        <td class="px-6 py-5 text-center"><span class="text-teal-400 font-black text-[10px]">${item.tasa}%</span></td>
+                        <td class="px-6 py-5 text-right text-slate-500 font-bold">$${item.redito.toLocaleString()}</td>
+                        <td class="px-6 py-5 text-right">
+                            <p class="${saldoFinal > 0 ? 'text-red-400' : 'text-teal-500'} font-black text-base">$${saldoFinal.toLocaleString()}</p>
+                        </td>
+                        <td class="px-6 py-5 text-center text-xs text-slate-500 font-medium">${fFecha(item.vencimiento)}</td>
+                    </tr>`;
+            }
+            document.getElementById('totalPrestadoValue').innerText = `$${totalG.toLocaleString()}`;
         }
 
-        // --- NUEVA FUNCIÓN: MARCAR COMO PAGADO ---
+        // --- FUNCIONES DE BASE DE DATOS ---
         window.marcarComoPagado = async (id, nombre) => {
-            if(confirm(`¿Confirmas que ${nombre} ha liquidado la totalidad de la deuda? Esto bloqueará futuras ediciones.`)) {
-                await updateDoc(doc(db, "prestamos", id), { 
-                    finalizado: true,
-                    fechaCierre: new Date().toISOString().split('T')[0]
-                });
+            if(confirm(`¿Confirmas liquidación total de ${nombre}?`)) {
+                await updateDoc(doc(db, "prestamos", id), { finalizado: true });
             }
         };
 
@@ -229,32 +237,19 @@
             document.getElementById('modalUser').innerText = nombre;
             document.getElementById('modalBody').innerHTML = `
                 <div class="space-y-4">
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase">Nuevo Capital</label>
-                        <input type="number" id="editCap" value="${capital}" class="w-full p-4 rounded-xl bg-gray-950 text-teal-400 font-bold text-xl">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase">Nueva Fecha Inicio</label>
-                        <input type="date" id="editFechaIni" value="${fechaIni}" class="w-full p-4 rounded-xl bg-gray-950 text-white">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase">Nueva Fecha Vencimiento</label>
-                        <input type="date" id="editFechaVen" value="${fechaVen || ''}" class="w-full p-4 rounded-xl bg-gray-950 text-white">
-                    </div>
-                </div>
-            `;
+                    <input type="number" id="editCap" value="${capital}" class="w-full p-4 rounded-xl bg-gray-950 text-teal-400 font-bold text-xl" placeholder="Capital">
+                    <input type="date" id="editFechaIni" value="${fechaIni}" class="w-full p-4 rounded-xl bg-gray-950 text-white">
+                    <input type="date" id="editFechaVen" value="${fechaVen || ''}" class="w-full p-4 rounded-xl bg-gray-950 text-white">
+                </div>`;
             document.getElementById('btnGuardar').onclick = async () => {
                 const nCap = Number(document.getElementById('editCap').value);
-                const nFechaI = document.getElementById('editFechaIni').value;
-                const nFechaV = document.getElementById('editFechaVen').value;
                 await updateDoc(doc(db, "prestamos", id), { 
-                    capital: nCap, 
-                    fechaInicio: nFechaI,
-                    vencimiento: nFechaV,
-                    redito: nCap * (tasa / 100) 
+                    capital: nCap, fechaInicio: document.getElementById('editFechaIni').value,
+                    vencimiento: document.getElementById('editFechaVen').value, redito: nCap * (tasa / 100) 
                 });
                 cerrarModal();
             };
+            document.getElementById('btnGuardar').style.display = 'block';
             document.getElementById('mainModal').classList.add('flex');
         };
 
@@ -269,11 +264,11 @@
                 await addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
                     monto: Number(document.getElementById('mRedito').value), 
                     valorContable: Number(document.getElementById('mRedito').value), 
-                    fecha: document.getElementById('fRedito').value, 
-                    timestamp: new Date() 
+                    fecha: document.getElementById('fRedito').value, timestamp: new Date() 
                 });
                 cerrarModal();
             };
+            document.getElementById('btnGuardar').style.display = 'block';
             document.getElementById('mainModal').classList.add('flex');
         };
 
@@ -304,16 +299,11 @@
         };
 
         window.borrarHistorialItem = async (pid, rid) => { 
-            if(confirm("¿Borrar este pago?")) { 
-                await deleteDoc(doc(db, "prestamos", pid, "historial_reditos", rid)); 
-                cerrarModal(); 
-            } 
+            if(confirm("¿Borrar este pago?")) { await deleteDoc(doc(db, "prestamos", pid, "historial_reditos", rid)); cerrarModal(); } 
         };
 
         window.eliminarRegistro = async (id, nombre) => { 
-            if(confirm(`¿ELIMINAR TODO EL REGISTRO DE ${nombre}?`)) {
-                await deleteDoc(doc(db, "prestamos", id)); 
-            }
+            if(confirm(`¿ELIMINAR TODO EL REGISTRO DE ${nombre}?`)) await deleteDoc(doc(db, "prestamos", id)); 
         };
 
         document.getElementById('loanForm').addEventListener('submit', async (e) => {
@@ -321,19 +311,13 @@
             const cap = Number(document.getElementById('amount').value);
             const tasa = Number(document.getElementById('interest').value);
             await addDoc(collection(db, "prestamos"), {
-                nombre: document.getElementById('debtor').value, 
-                capital: cap, 
-                tasa: tasa, 
-                redito: cap * (tasa / 100),
-                fechaInicio: document.getElementById('startDate').value, 
-                vencimiento: document.getElementById('dueDate').value, 
-                timestamp: new Date(),
-                finalizado: false
+                nombre: document.getElementById('debtor').value, capital: cap, tasa: tasa, redito: cap * (tasa / 100),
+                fechaInicio: document.getElementById('startDate').value, vencimiento: document.getElementById('dueDate').value, 
+                timestamp: new Date(), finalizado: false
             });
             e.target.reset();
         });
 
-        cargarDatos();
     </script>
 </body>
 </html>
