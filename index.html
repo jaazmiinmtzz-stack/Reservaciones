@@ -13,7 +13,7 @@
         .modal { display: none !important; position: fixed; z-index: 100; inset: 0; background: rgba(2, 6, 17, 0.8); backdrop-filter: blur(4px); }
         .modal.flex { display: flex !important; }
         table tbody tr:hover { background-color: #1e293b; }
-        .status-finalizado { opacity: 0.6; }
+        .status-finalizado { opacity: 0.4; background-color: #0f172a / 50; }
     </style>
 </head>
 <body class="text-slate-300">
@@ -38,12 +38,16 @@
 
     <!-- NAVBAR -->
     <nav class="bg-gray-950 px-6 py-4 sticky top-0 z-40 border-b border-slate-700">
-        <div class="max-w-77xl mx-auto flex justify-between items-center">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <span class="text-2xl">🏦</span>
                 <h1 class="text-lg font-black text-white uppercase tracking-tighter">Presta<span class="text-teal-400">Control</span></h1>
             </div>
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-4">
+                <!-- NUEVO BOTÓN INTERRUPTOR PARA VER PAGADOS -->
+                <button id="togglePagadosBtn" onclick="toggleMostrarPagados()" class="text-[10px] bg-slate-900 hover:bg-slate-800 text-slate-400 px-4 py-2.5 rounded-xl border border-slate-700 font-bold uppercase tracking-wider">
+                    👁️ Ver Liquidados
+                </button>
                 <div id="totalGlobalBox" class="hidden text-right">
                     <p class="text-[9px] text-slate-500 font-black uppercase">Cartera Activa</p>
                     <p id="totalPrestadoValue" class="text-teal-400 font-black text-lg leading-none">$0</p>
@@ -53,7 +57,7 @@
         </div>
     </nav>
 
-    <main class="max-w-77xl mx-auto px-4 py-8">
+    <main class="max-w-7xl mx-auto px-4 py-8">
         <!-- FORMULARIO -->
         <div class="panel-cobalto mb-8 overflow-hidden">
             <form id="loanForm" class="p-8 grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -123,6 +127,7 @@
         const db = getFirestore(app);
         
         let esAdmin = false;
+        let mostrarPagados = false; // Variable de control para el filtro
         let lastSnap = null;
 
         const fFecha = (f) => f ? new Date(f + "T12:00:00").toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : "---";
@@ -154,6 +159,22 @@
             if(lastSnap) renderTable(lastSnap);
         };
 
+        // Función para activar/desactivar el filtro desde el Navbar
+        window.toggleMostrarPagados = () => {
+            mostrarPagados = !mostrarPagados;
+            const btn = document.getElementById('togglePagadosBtn');
+            if (mostrarPagados) {
+                btn.innerHTML = `👁️ Ocultar Liquidados`;
+                btn.classList.replace('text-slate-400', 'text-teal-400');
+                btn.classList.add('border-teal-500');
+            } else {
+                btn.innerHTML = `👁️ Ver Liquidados`;
+                btn.classList.replace('text-teal-400', 'text-slate-400');
+                btn.classList.remove('border-teal-500');
+            }
+            if(lastSnap) renderTable(lastSnap);
+        };
+
         onSnapshot(query(collection(db, "prestamos"), orderBy("timestamp", "desc")), (snap) => {
             lastSnap = snap;
             renderTable(snap);
@@ -169,11 +190,12 @@
                 const id = docu.id; 
                 const isFinalizado = item.finalizado === true;
                 
+                // Si la casilla de mostrar pagados está desactivada y el registro está finalizado, lo salta
+                if (!mostrarPagados && isFinalizado) continue;
+                
                 if(!isFinalizado) totalG += item.capital;
                 
                 const mesesDebidos = mesesTranscurridos(item.fechaInicio);
-                
-                // Solución al atraso: Si existe un "ajusteAtraso" guardado por haber modificado el capital, se le aplica al cálculo
                 const ajusteAtraso = item.ajusteAtraso || 0;
                 const totalQueDebioPagar = (mesesDebidos * item.redito) + ajusteAtraso;
                 
@@ -199,13 +221,14 @@
                         botones = `
                         <div class="flex gap-1.5 mt-3">
                             <span class="text-[10px] font-bold text-teal-500 uppercase tracking-widest italic">✓ Liquidado</span>
+                            <button onclick="verHistorial('${id}', '${item.nombre}')" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold uppercase">Historial</button>
                             <button onclick="eliminarRegistro('${id}', '${item.nombre}')" class="bg-red-900/20 text-red-400 px-2 py-1 rounded text-[9px] font-bold uppercase ml-2">Borrar</button>
                         </div>`;
                     }
                 }
 
                 lista.innerHTML += `
-                    <tr class="border-b border-slate-800 ${isFinalizado ? 'status-finalizado' : ''}">
+                    <tr class="border-b border-slate-800 ${isFinalizado ? 'status-finalizado opacity-40 bg-slate-950/40' : ''}">
                         <td class="px-6 py-5">
                             <div class="flex items-center gap-2">
                                 <p class="font-bold text-white uppercase text-sm">${item.nombre}</p>
@@ -244,21 +267,16 @@
                     <input type="date" id="editFechaIni" value="${fechaIni}" class="w-full p-4 rounded-xl bg-gray-950 text-white">
                     <label class="block text-[10px] font-black text-slate-400 uppercase">Fecha de Vencimiento</label>
                     <input type="date" id="editFechaVen" value="${fechaVen || ''}" class="w-full p-4 rounded-xl bg-gray-950 text-white">
-                    <div class="p-3 bg-teal-950/30 border border-teal-900 rounded-xl text-xs text-teal-300">
-                        💡 Al cambiar el capital, el sistema compensará la diferencia automáticamente en el historial para evitar falsos atrasos retroactivos.
-                    </div>
                 </div>`;
                 
             document.getElementById('btnGuardar').onclick = async () => {
                 const nCap = Number(document.getElementById('editCap').value);
                 const fechaInicioForm = document.getElementById('editFechaIni').value;
                 
-                // Calcular diferencia para que los meses pasados se cobren con el rédito anterior
                 const mesesPasados = mesesTranscurridos(fechaInicioForm);
                 const reditoViejo = capital * (tasa / 100);
                 const reditoNuevo = nCap * (tasa / 100);
                 
-                // Compensación matemática
                 const diferenciaReditoTotal = (reditoViejo - reditoNuevo) * mesesPasados;
                 const nuevoAjusteAtraso = (ajusteActual || 0) + diferenciaReditoTotal;
 
@@ -267,7 +285,7 @@
                     fechaInicio: fechaInicioForm,
                     vencimiento: document.getElementById('editFechaVen').value, 
                     redito: reditoNuevo,
-                    ajusteAtraso: nuevoAjusteAtraso // Se guarda en Firebase para balancear el cambio
+                    ajusteAtraso: nuevoAjusteAtraso
                 });
                 cerrarModal();
             };
