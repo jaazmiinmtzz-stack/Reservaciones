@@ -211,6 +211,7 @@
                         botones = `
                         <div class="flex gap-1.5 mt-3 flex-wrap">
                             <button onclick="formPago('${id}', '${item.nombre}', ${item.redito})" class="bg-teal-600 text-slate-950 px-2 py-1 rounded text-[9px] font-bold uppercase">Pagar</button>
+                            <button onclick="formAbonoCapital('${id}', '${item.nombre}', ${item.capital}, '${item.fechaInicio}', ${item.tasa}, ${ajusteAtraso})" class="bg-blue-600/20 text-blue-400 border border-blue-800 px-2 py-1 rounded text-[9px] font-bold uppercase">Abonar Cap</button>
                             <button onclick="condonarRedito('${id}', '${item.nombre}', ${item.redito})" class="bg-orange-600/20 text-orange-400 border border-orange-800 px-2 py-1 rounded text-[9px] font-bold uppercase">Condonar</button>
                             <button onclick="verHistorial('${id}', '${item.nombre}')" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold uppercase">Historial</button>
                             <button onclick="formEditGral('${id}', '${item.nombre}', ${item.capital}, '${item.fechaInicio}', '${item.vencimiento}', ${item.tasa}, ${ajusteAtraso})" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold uppercase">Editar</button>
@@ -254,6 +255,52 @@
             if(confirm(`¿Confirmas liquidación total de ${nombre}?`)) {
                 await updateDoc(doc(db, "prestamos", id), { finalizado: true });
             }
+        };
+
+        window.formAbonoCapital = (id, nombre, capitalActual, fechaInicio, tasa, ajusteActual) => {
+            document.getElementById('modalTitle').innerText = "Abono a Capital";
+            document.getElementById('modalUser').innerText = nombre;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="space-y-4">
+                    <p class="text-xs text-slate-400">Capital actual: <strong class="text-white">$${capitalActual.toLocaleString()}</strong></p>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase">Monto a abonar al capital</label>
+                    <input type="number" id="montoAbono" placeholder="0" class="w-full p-4 rounded-xl bg-gray-950 text-teal-400 font-bold text-xl">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase">Fecha del Abono</label>
+                    <input type="date" id="fAbono" value="${new Date().toISOString().split('T')[0]}" class="w-full p-4 rounded-xl bg-gray-950 text-white">
+                </div>`;
+                
+            document.getElementById('btnGuardar').onclick = async () => {
+                const abono = Number(document.getElementById('montoAbono').value);
+                if (abono <= 0) return alert("Ingresa un monto válido");
+                if (abono > capitalActual) return alert("El abono no puede superar el capital actual");
+
+                const nuevoCapital = capitalActual - abono;
+                const mesesPasados = mesesTranscurridos(fechaInicio);
+                const reditoViejo = capitalActual * (tasa / 100);
+                const reditoNuevo = nuevoCapital * (tasa / 100);
+
+                const diferenciaReditoTotal = (reditoViejo - reditoNuevo) * mesesPasados;
+                const nuevoAjusteAtraso = (ajusteActual || 0) + diferenciaReditoTotal;
+                const fechaAbono = document.getElementById('fAbono').value;
+
+                await updateDoc(doc(db, "prestamos", id), {
+                    capital: nuevoCapital,
+                    redito: reditoNuevo,
+                    ajusteAtraso: nuevoAjusteAtraso
+                });
+
+                await addDoc(collection(db, "prestamos", id, "historial_reditos"), {
+                    monto: abono,
+                    valorContable: 0,
+                    nota: `Abono a Capital ($${abono.toLocaleString()})`,
+                    fecha: fechaAbono,
+                    timestamp: new Date()
+                });
+
+                cerrarModal();
+            };
+            document.getElementById('btnGuardar').style.display = 'block';
+            document.getElementById('mainModal').classList.add('flex');
         };
 
         window.formEditGral = (id, nombre, capital, fechaIni, fechaVen, tasa, ajusteActual) => {
@@ -327,7 +374,10 @@
             snap.forEach(d => {
                 const p = d.data();
                 html += `<div class="p-3 bg-gray-950 border border-slate-800 rounded-lg mb-2 flex justify-between items-center">
-                    <div><p class="text-xs text-slate-500">${fFecha(p.fecha)}</p><p class="font-bold text-teal-400">$${p.monto.toLocaleString()}</p></div>
+                    <div>
+                        <p class="text-xs text-slate-500">${fFecha(p.fecha)} ${p.nota ? `<span class="text-blue-400 font-semibold">(${p.nota})</span>` : ''}</p>
+                        <p class="font-bold text-teal-400">$${p.monto.toLocaleString()}</p>
+                    </div>
                     <button onclick="borrarHistorialItem('${id}','${d.id}')" class="text-red-500 text-xs uppercase font-bold">Borrar</button>
                 </div>`;
             });
