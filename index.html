@@ -89,6 +89,23 @@
             </form>
         </div>
 
+        <!-- FILTRO Y SUMA DE IMPORTES SELECCIONADOS -->
+        <div class="panel-cobalto mb-4 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label for="filtroNombre" class="block text-[10px] font-black text-slate-400 uppercase mb-2">Buscar por nombre</label>
+                <input type="search" id="filtroNombre" placeholder="Escribe el nombre del deudor..." class="w-full p-3 rounded-xl text-sm">
+            </div>
+            <div class="bg-gray-950/70 rounded-xl p-3">
+                <p class="text-[10px] font-black text-slate-400 uppercase mb-2">Importes seleccionados</p>
+                <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                    <span>Capital: <strong id="sumaCapitalSeleccionado" class="text-white">$0</strong></span>
+                    <span>Rédito: <strong id="sumaReditoSeleccionado" class="text-teal-400">$0</strong></span>
+                    <span>Total a pagar: <strong id="sumaTotalSeleccionado" class="text-amber-400">$0</strong></span>
+                </div>
+                <button type="button" id="limpiarSeleccion" class="mt-2 text-[10px] text-slate-400 underline">Limpiar selección</button>
+            </div>
+        </div>
+
         <!-- TABLA -->
         <div class="panel-cobalto overflow-hidden shadow-2xl">
             <div class="overflow-x-auto">
@@ -126,9 +143,54 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
+        // La sesión de administrador se conserva al actualizar la página en la misma pestaña.
         let esAdmin = false;
-        let mostrarPagados = false; // Variable de control para el filtro
+        try { esAdmin = sessionStorage.getItem("prestacontrol_admin") === "1"; } catch (e) {}
+        let mostrarPagados = false;
         let lastSnap = null;
+        let renderVersion = 0;
+        const seleccionCapital = new Set();
+        const seleccionRedito = new Set();
+        const historialCache = new Map();
+        const formatoDinero = (n) => "$" + Number(n || 0).toLocaleString("es-MX");
+
+        function actualizarEstadoAdmin() {
+            document.getElementById('adminBtn').innerHTML = esAdmin
+                ? '<span class="text-teal-400">●</span> SALIR ADMIN'
+                : '🔒 Acceso Admin';
+            document.getElementById('totalGlobalBox').classList.toggle('hidden', !esAdmin);
+        }
+
+        window.actualizarSeleccion = (tipo, id, marcado) => {
+            const conjunto = tipo === 'capital' ? seleccionCapital : seleccionRedito;
+            if (marcado) conjunto.add(id); else conjunto.delete(id);
+            actualizarSumaSeleccionada();
+        };
+
+        function actualizarSumaSeleccionada() {
+            let capital = 0, redito = 0;
+            if (lastSnap) {
+                lastSnap.docs.forEach(d => {
+                    const dato = d.data();
+                    if (seleccionCapital.has(d.id)) capital += Number(dato.capital || 0);
+                    if (seleccionRedito.has(d.id)) redito += Number(dato.redito || 0);
+                });
+            }
+            document.getElementById('sumaCapitalSeleccionado').textContent = formatoDinero(capital);
+            document.getElementById('sumaReditoSeleccionado').textContent = formatoDinero(redito);
+            document.getElementById('sumaTotalSeleccionado').textContent = formatoDinero(capital + redito);
+        }
+
+        document.getElementById('filtroNombre').addEventListener('input', () => {
+            if (lastSnap) renderTable(lastSnap);
+        });
+        document.getElementById('limpiarSeleccion').addEventListener('click', () => {
+            seleccionCapital.clear();
+            seleccionRedito.clear();
+            document.querySelectorAll('input[data-tipo="capital"], input[data-tipo="redito"]').forEach(c => c.checked = false);
+            actualizarSumaSeleccionada();
+        });
+        actualizarEstadoAdmin();
 
         const fFecha = (f) => f ? new Date(f + "T12:00:00").toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : "---";
 
@@ -146,17 +208,16 @@
 
         window.toggleAdmin = () => {
             if (!esAdmin) {
-                if(prompt("Clave Admin:") === "3010") {
+                if (prompt("Clave Admin:") === "3010") {
                     esAdmin = true;
-                    document.getElementById('adminBtn').innerHTML = `<span class="text-teal-400">●</span> SALIR ADMIN`;
-                    document.getElementById('totalGlobalBox').classList.remove('hidden');
+                    try { sessionStorage.setItem("prestacontrol_admin", "1"); } catch (e) {}
                 }
             } else {
                 esAdmin = false;
-                document.getElementById('adminBtn').innerHTML = `🔒 Acceso Admin`;
-                document.getElementById('totalGlobalBox').classList.add('hidden');
+                try { sessionStorage.removeItem("prestacontrol_admin"); } catch (e) {}
             }
-            if(lastSnap) renderTable(lastSnap);
+            actualizarEstadoAdmin();
+            if (lastSnap) renderTable(lastSnap);
         };
 
         // Función para activar/desactivar el filtro desde el Navbar
@@ -178,32 +239,53 @@
         onSnapshot(query(collection(db, "prestamos"), orderBy("timestamp", "desc")), (snap) => {
             lastSnap = snap;
             renderTable(snap);
+        }, (error) => {
+            console.error("Error al consultar préstamos:", error);
+            document.getElementById('loanList').innerHTML =
+                '<tr><td colspan="7" class="p-6 text-center text-red-400">No se pudo cargar la información. Verifica tu conexión e intenta nuevamente.</td></tr>';
         });
 
         async function renderTable(snap) {
             const lista = document.getElementById('loanList');
-            lista.innerHTML = ""; 
+            const version = ++renderVersion;
+            lista.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Cargando información...</td></tr>';
+
+            // Consultar historiales en paralelo evita esperar uno por uno, especialmente en iPhone.
+            const registros = await Promise.all(snap.docs.map(async (docu) => {
+                const item = docu.data();
+                const id = docu.id;
+                let pagado = historialCache.get(id);
+                if (pagado === undefined) {
+                    const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
+                    pagado = 0;
+                    reditosSnap.forEach(r => {
+                        const mov = r.data();
+                        pagado += Number(mov.valorContable ?? mov.monto ?? 0);
+                    });
+                    historialCache.set(id, pagado);
+                }
+                return { id, item, pagado };
+            }));
+
+            // Ignora respuestas antiguas si llegó una actualización más reciente.
+            if (version !== renderVersion) return;
+
+            lista.innerHTML = "";
             let totalG = 0;
-            
-            for (const docu of snap.docs) {
-                const item = docu.data(); 
-                const id = docu.id; 
+            const filtro = document.getElementById('filtroNombre').value.trim().toLocaleLowerCase('es-MX');
+
+            for (const registro of registros) {
+                const { id, item, pagado } = registro;
                 const isFinalizado = item.finalizado === true;
-                
-                // Si la casilla de mostrar pagados está desactivada y el registro está finalizado, lo salta
                 if (!mostrarPagados && isFinalizado) continue;
-                
-                if(!isFinalizado) totalG += item.capital;
-                
+                if (filtro && !String(item.nombre || '').toLocaleLowerCase('es-MX').includes(filtro)) continue;
+
+                if (!isFinalizado) totalG += Number(item.capital || 0);
+
                 const mesesDebidos = mesesTranscurridos(item.fechaInicio);
-                const ajusteAtraso = item.ajusteAtraso || 0;
-                const totalQueDebioPagar = (mesesDebidos * item.redito) + ajusteAtraso;
-                
-                const reditosSnap = await getDocs(collection(db, "prestamos", id, "historial_reditos"));
-                let loQueYaNoDebe = 0;
-                reditosSnap.forEach(r => { loQueYaNoDebe += Number(r.data().valorContable || r.data().monto); });
-                
-                const saldoFinal = isFinalizado ? 0 : Math.max(0, totalQueDebioPagar - loQueYaNoDebe);
+                const ajusteAtraso = Number(item.ajusteAtraso || 0);
+                const totalQueDebioPagar = (mesesDebidos * Number(item.redito || 0)) + ajusteAtraso;
+                const saldoFinal = isFinalizado ? 0 : Math.max(0, totalQueDebioPagar - pagado);
 
                 let botones = '';
                 if (esAdmin) {
@@ -238,16 +320,27 @@
                             ${botones}
                         </td>
                         <td class="px-6 py-5 text-center text-xs text-slate-400">${fFecha(item.fechaInicio)}</td>
-                        <td class="px-6 py-5 text-right font-bold text-slate-100">$${item.capital.toLocaleString()}</td>
+                        <td class="px-6 py-5 text-right font-bold text-slate-100">
+                                <label class="inline-flex items-center justify-end gap-2">
+                                    <input type="checkbox" class="w-4 h-4 accent-teal-500" data-tipo="capital" data-id="${id}" onchange="actualizarSeleccion('capital','${id}',this.checked)" ${seleccionCapital.has(id) ? 'checked' : ''}>
+                                    <span>$${Number(item.capital || 0).toLocaleString('es-MX')}</span>
+                                </label>
+                            </td>
                         <td class="px-6 py-5 text-center"><span class="text-teal-400 font-black text-[10px]">${item.tasa}%</span></td>
-                        <td class="px-6 py-5 text-right text-slate-500 font-bold">$${item.redito.toLocaleString()}</td>
+                        <td class="px-6 py-5 text-right text-slate-500 font-bold">
+                                <label class="inline-flex items-center justify-end gap-2">
+                                    <input type="checkbox" class="w-4 h-4 accent-teal-500" data-tipo="redito" data-id="${id}" onchange="actualizarSeleccion('redito','${id}',this.checked)" ${seleccionRedito.has(id) ? 'checked' : ''}>
+                                    <span>$${Number(item.redito || 0).toLocaleString('es-MX')}</span>
+                                </label>
+                            </td>
                         <td class="px-6 py-5 text-right">
                             <p class="${saldoFinal > 0 ? 'text-red-400' : 'text-teal-500'} font-black text-base">$${saldoFinal.toLocaleString()}</p>
                         </td>
                         <td class="px-6 py-5 text-center text-xs text-slate-500 font-medium">${fFecha(item.vencimiento)}</td>
                     </tr>`;
             }
-            document.getElementById('totalPrestadoValue').innerText = `$${totalG.toLocaleString()}`;
+            document.getElementById('totalPrestadoValue').innerText = formatoDinero(totalG);
+            actualizarSumaSeleccionada();
         }
 
         // --- FUNCIONES DE BASE DE DATOS ---
@@ -296,6 +389,7 @@
                     fecha: fechaAbono,
                     timestamp: new Date()
                 });
+                historialCache.delete(id);
 
                 cerrarModal();
             };
@@ -353,6 +447,7 @@
                     valorContable: Number(document.getElementById('mRedito').value), 
                     fecha: document.getElementById('fRedito').value, timestamp: new Date() 
                 });
+                historialCache.delete(id);
                 cerrarModal();
             };
             document.getElementById('btnGuardar').style.display = 'block';
@@ -364,32 +459,38 @@
                 addDoc(collection(db, "prestamos", id, "historial_reditos"), { 
                     monto: 0, valorContable: redito, nota: "Condonado", 
                     fecha: new Date().toISOString().split('T')[0], timestamp: new Date() 
-                });
+                }).then(() => historialCache.delete(id));
             }
         };
 
         window.verHistorial = async (id, nombre) => {
             const snap = await getDocs(query(collection(db, "prestamos", id, "historial_reditos"), orderBy("timestamp", "desc")));
             let html = '';
+            let sumaPagos = 0;
             snap.forEach(d => {
                 const p = d.data();
+                sumaPagos += Number(p.monto || 0);
                 html += `<div class="p-3 bg-gray-950 border border-slate-800 rounded-lg mb-2 flex justify-between items-center">
                     <div>
                         <p class="text-xs text-slate-500">${fFecha(p.fecha)} ${p.nota ? `<span class="text-blue-400 font-semibold">(${p.nota})</span>` : ''}</p>
-                        <p class="font-bold text-teal-400">$${p.monto.toLocaleString()}</p>
+                        <p class="font-bold text-teal-400">$${Number(p.monto || 0).toLocaleString('es-MX')}</p>
                     </div>
                     <button onclick="borrarHistorialItem('${id}','${d.id}')" class="text-red-500 text-xs uppercase font-bold">Borrar</button>
                 </div>`;
             });
+            const totalHtml = `<div class="p-4 mb-3 bg-teal-950/40 border border-teal-800 rounded-lg flex justify-between items-center">
+                <span class="text-xs font-black text-slate-300 uppercase">Suma de pagos</span>
+                <span class="text-lg font-black text-teal-400">${formatoDinero(sumaPagos)}</span>
+            </div>`;
             document.getElementById('modalTitle').innerText = "Historial de Pagos";
             document.getElementById('modalUser').innerText = nombre;
-            document.getElementById('modalBody').innerHTML = html || '<p class="text-center text-slate-500">Sin movimientos</p>';
+            document.getElementById('modalBody').innerHTML = (html ? totalHtml + html : '<p class="text-center text-slate-500">Sin movimientos</p>');
             document.getElementById('btnGuardar').style.display = 'none';
             document.getElementById('mainModal').classList.add('flex');
         };
 
         window.borrarHistorialItem = async (pid, rid) => { 
-            if(confirm("¿Borrar este pago?")) { await deleteDoc(doc(db, "prestamos", pid, "historial_reditos", rid)); cerrarModal(); } 
+            if(confirm("¿Borrar este pago?")) { await deleteDoc(doc(db, "prestamos", pid, "historial_reditos", rid)); historialCache.delete(pid); cerrarModal(); } 
         };
 
         window.eliminarRegistro = async (id, nombre) => { 
@@ -411,3 +512,4 @@
     </script>
 </body>
 </html>
+
